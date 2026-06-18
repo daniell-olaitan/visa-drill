@@ -15,12 +15,27 @@ class StartSessionRequest(BaseModel):
     language: str | None = None
     # Stable per-user key for cross-session memory (feature #7); omitted = stateless.
     applicant_id: str | None = None
+    # Per-session context appended to the persona (e.g. the specific visa category).
+    conversational_context: str | None = None
 
 
 class StartSessionResponse(BaseModel):
     """Tavus conversation details the frontend needs to join the Daily room."""
 
     conversation_url: str
+    conversation_id: str
+
+
+class EmbedRequest(BaseModel):
+    """Body for POST /api/liveavatar/embed (the frontend's avatar-embed contract)."""
+
+    category: str
+
+
+class EmbedResponse(BaseModel):
+    """An embeddable conversation URL, matching the frontend's expected shape."""
+
+    url: str
     conversation_id: str
 
 

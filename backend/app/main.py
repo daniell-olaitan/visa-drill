@@ -22,6 +22,8 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import Settings, load_settings
 from .models import (
+    EmbedRequest,
+    EmbedResponse,
     EndSessionRequest,
     HealthResponse,
     ReportResponse,
@@ -30,7 +32,7 @@ from .models import (
     StockReplica,
     TranscriptTurn,
 )
-from .personas import SPECS, PersonaMap
+from .personas import SPECS, PersonaMap, VisaType
 from .provisioning import provision
 from .tavus import TavusApiError, TavusClient
 
@@ -42,6 +44,33 @@ logger = logging.getLogger("facedrill")
 MAX_CALL_DURATION_S = 8 * 60
 PARTICIPANT_LEFT_TIMEOUT_S = 10
 PARTICIPANT_ABSENT_TIMEOUT_S = 60
+
+# The frontend's VisaCategory (b1b2/f1/h1b/j1/any) -> our persona visa_type.
+# "b1b2" is the general nonimmigrant consular officer (it adapts to the category
+# via conversational_context below); the F-1 student officer stays dedicated.
+CATEGORY_TO_VISA: dict[str, VisaType] = {
+    "b1b2": "b1b2",
+    "f1": "f1",
+    "h1b": "b1b2",
+    "j1": "b1b2",
+    "any": "b1b2",
+}
+
+# Per-category context injected into the conversation so the general officer
+# tailors its questions (the F-1 persona already specializes, but context helps).
+CATEGORY_CONTEXT: dict[str, str] = {
+    "b1b2": "The applicant is applying for a B1/B2 visitor visa.",
+    "f1": "The applicant is applying for an F-1 student visa.",
+    "h1b": (
+        "The applicant is applying for an H-1B specialty-occupation work visa. "
+        "Probe the employer, the role, and the applicant's qualifications."
+    ),
+    "j1": (
+        "The applicant is applying for a J-1 exchange visitor visa. "
+        "Probe the program, its sponsor, and intent to return home."
+    ),
+    "any": "The applicant is applying for a U.S. nonimmigrant visa.",
+}
 
 
 @asynccontextmanager
@@ -152,6 +181,9 @@ async def start_session(body: StartSessionRequest) -> StartSessionResponse:
         "custom_greeting": SPECS[body.visa_type].greeting,
         "properties": properties,
     }
+    # Per-session context (e.g. the specific visa category) layered on the persona.
+    if body.conversational_context:
+        payload["conversational_context"] = body.conversational_context
     # Cross-session memory (feature #7): a stable, user-specific store key.
     if body.applicant_id:
         payload["memory_stores"] = [f"{body.applicant_id}-{body.visa_type}"]
@@ -174,6 +206,24 @@ async def start_session(body: StartSessionRequest) -> StartSessionResponse:
 
     logger.info("start-session: visa=%s conversation_id=%s", body.visa_type, conversation_id)
     return StartSessionResponse(conversation_url=url, conversation_id=conversation_id)
+
+
+@app.post("/api/liveavatar/embed", response_model=EmbedResponse)
+async def embed(body: EmbedRequest) -> EmbedResponse:
+    """Avatar-embed endpoint the frontend calls; returns a Tavus conversation URL.
+
+    Mirrors the frontend's existing LiveAvatar embed contract ({category} -> {url})
+    so the interview UI works unchanged, but the URL is a Tavus Daily room.
+    """
+    category = body.category.lower()
+    visa_type: VisaType = CATEGORY_TO_VISA.get(category) or "b1b2"
+    session = await start_session(
+        StartSessionRequest(
+            visa_type=visa_type,
+            conversational_context=CATEGORY_CONTEXT.get(category),
+        )
+    )
+    return EmbedResponse(url=session.conversation_url, conversation_id=session.conversation_id)
 
 
 @app.post("/api/end-session")
@@ -202,12 +252,38 @@ async def webhook(request: Request) -> dict[str, bool]:
     return {"received": True}
 
 
+# Only genuinely spoken turns belong in the transcript. Tavus also emits the system
+# prompt and internal context (timezone, SSML/TTS directions) as non-spoken roles.
+_SPOKEN_ROLES = {"user", "assistant", "replica", "agent"}
+# Spoken utterances are short; anything this long is a system prompt / context blob.
+_MAX_TURN_CHARS = 2000
+
+
+def _clean_turns(raw: list[Any]) -> list[TranscriptTurn]:
+    """Keep only spoken user/officer turns, dropping system/context and duplicates."""
+    out: list[TranscriptTurn] = []
+    for turn in raw:
+        if not isinstance(turn, dict):
+            continue
+        role = str(turn.get("role", "")).lower()
+        if role not in _SPOKEN_ROLES:
+            continue
+        content = str(turn.get("content") or turn.get("speech") or "").strip()
+        if not content or len(content) > _MAX_TURN_CHARS:
+            continue
+        normalized = "user" if role == "user" else "assistant"
+        if out and out[-1].role == normalized and out[-1].content == content:
+            continue  # collapse exact consecutive repeats
+        out.append(TranscriptTurn(role=normalized, content=content))
+    return out
+
+
 def _parse_events(
     events: list[Any],
 ) -> tuple[list[TranscriptTurn], str | None, str | None]:
     """Extract transcript, perception analysis, and recording url from Tavus events."""
     transcript: list[TranscriptTurn] = []
-    utterances: list[TranscriptTurn] = []
+    utterances: list[dict[str, Any]] = []
     perception: str | None = None
     recording: str | None = None
 
@@ -221,12 +297,9 @@ def _parse_events(
         if etype.endswith("transcription_ready"):
             turns = props.get("transcript")
             if isinstance(turns, list):
-                for turn in turns:
-                    if not isinstance(turn, dict):
-                        continue
-                    content = str(turn.get("content") or turn.get("speech") or "")
-                    if content:
-                        transcript.append(TranscriptTurn(role=str(turn.get("role", "")), content=content))
+                cleaned = _clean_turns(turns)
+                if cleaned:
+                    transcript = cleaned  # last/most-complete transcript wins (no doubling)
         elif etype.endswith("perception_analysis"):
             analysis = props.get("analysis")
             if isinstance(analysis, str):
@@ -238,9 +311,9 @@ def _parse_events(
         elif etype.endswith("utterance"):
             speech = props.get("speech") or props.get("text")
             if isinstance(speech, str) and speech:
-                utterances.append(TranscriptTurn(role=str(props.get("role", "")), content=speech))
+                utterances.append({"role": props.get("role", ""), "speech": speech})
 
-    return (transcript or utterances), perception, recording
+    return (transcript or _clean_turns(utterances)), perception, recording
 
 
 @app.get("/api/report/{conversation_id}", response_model=ReportResponse)

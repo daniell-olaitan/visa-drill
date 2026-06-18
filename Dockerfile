@@ -1,7 +1,7 @@
 # Multi-stage build: compile the Vite frontend, then serve it from FastAPI.
 
-# 1. Build the React/Vite client.
-FROM node:20-slim AS client
+# 1. Build the React/Vite client (Vite 7 needs Node 20.19+/22.12+; use 22).
+FROM node:22-slim AS client
 WORKDIR /client
 COPY client/package.json client/package-lock.json ./
 RUN npm ci

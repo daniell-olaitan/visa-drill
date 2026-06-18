@@ -72,6 +72,19 @@ def test_start_session_with_applicant_and_language(
     assert payload["memory_stores"] == ["user-42-f1"]
 
 
+def test_embed_maps_category_to_persona(client: TestClient, fake_client: FakeTavusClient) -> None:
+    res = client.post("/api/liveavatar/embed", json={"category": "h1b"})
+    assert res.status_code == 200
+    body = res.json()
+    assert body["url"] == "https://tavus.daily.co/c123"
+    assert body["conversation_id"] == "c123"
+    # h1b (no dedicated persona) maps to the general b1b2 officer, with H-1B context.
+    post = next(c for c in fake_client.calls if c[0] == "POST" and c[1] == "/conversations")
+    assert post[2] is not None
+    assert post[2]["persona_id"] == "p_b1b2"
+    assert "H-1B" in post[2]["conversational_context"]
+
+
 def test_start_session_invalid_visa(client: TestClient) -> None:
     res = client.post("/api/start-session", json={"visa_type": "h1b"})
     assert res.status_code == 422  # rejected by the Literal schema
@@ -107,6 +120,47 @@ def test_report(client: TestClient) -> None:
     assert len(body["transcript"]) == 2
     assert body["transcript"][1]["content"] == "My name is Test Applicant."
     assert "eye contact" in body["perception_analysis"]
+
+
+def test_parse_events_excludes_system_prompt() -> None:
+    from app.main import _parse_events
+
+    events = [
+        {
+            "event_type": "application.transcription_ready",
+            "properties": {
+                "transcript": [
+                    {"role": "system", "content": "You are a U.S. consular officer " + "x" * 200},
+                    {"role": "assistant", "content": "Good morning. Please state your name."},
+                    {"role": "user", "content": "Hello."},
+                    {"role": "assistant", "content": "How long will you stay?"},
+                ]
+            },
+        },
+        {
+            "event_type": "application.perception_analysis",
+            "properties": {"analysis": "Calm, steady eye contact."},
+        },
+    ]
+    transcript, perception, recording = _parse_events(events)
+    assert [t.role for t in transcript] == ["assistant", "user", "assistant"]
+    assert all("consular officer" not in t.content for t in transcript)
+    assert perception == "Calm, steady eye contact."
+
+    # A prompt-sized blob is dropped even if mislabeled as a spoken role.
+    big = [
+        {
+            "event_type": "application.transcription_ready",
+            "properties": {
+                "transcript": [
+                    {"role": "assistant", "content": "Y" * 5000},
+                    {"role": "assistant", "content": "Short line."},
+                ]
+            },
+        }
+    ]
+    turns, _, _ = _parse_events(big)
+    assert [t.content for t in turns] == ["Short line."]
 
 
 def test_webhook_stores_event(client: TestClient) -> None:

@@ -8,7 +8,11 @@ Three interview modes:
 - **Student Visa (F-1)** - consular interview, ~4 minutes
 - **Citizenship (N-400)** - USCIS naturalization interview, ~6 minutes
 
-> This is a Tavus-based sibling of the original `FaceDrill` (which used BeyondPresence + LiveKit). The React frontend is reused; the backend is FastAPI and talks to Tavus, and the in-call video uses Daily (Tavus's WebRTC transport) instead of LiveKit.
+> **Single service**: the FastAPI backend serves the real FaceDrill SPA (the
+> `jedidiah-oladele/facedrill` Vite/React/shadcn app, in `client/`) and provides the
+> Tavus-backed `/api`. The interview's hyperreal officer is rendered by **Tavus CVI**
+> (the frontend embeds the Tavus `conversation_url` through its existing avatar-embed
+> contract); the built-in browser **simulator** remains the zero-config fallback.
 
 ## Tavus features used
 
@@ -21,44 +25,53 @@ Three interview modes:
 | 5 | **Guardrails** | Hard-enforce: never coach/break character, block real PII, stay on topic | `guardrails.py` |
 | 6 | **Flow + STT hotwords** | Officer can interrupt rambling answers; accurate capture of visa terms/names | `personas.py` `layers.conversational_flow` / `stt` |
 | 7 | **Memories** | Cross-session memory keyed per applicant (progress across attempts) | `start-session` `memory_stores` |
-| 8 | **Language support** | Practice in 40+ languages or English-proficiency mode | Landing selector -> `properties.language` |
+| 8 | **Language support** | Practice in 40+ languages or English-proficiency mode | `properties.language` (default english) |
 | 9 | **Pronunciation dictionary** | Correct TTS of "USCIS", "N-400", etc. | `pronunciation.py` |
 
 Each feature degrades gracefully: if a Tavus resource fails to provision at startup
 (e.g. an account without that capability), the backend logs a warning and boots
 without it rather than failing.
 
-The post-interview **Report** screen (`/report/:conversationId`) shows the demeanor
-analysis, transcript, and recording link. It pulls from the verbose conversation on
-demand (so it works without a public webhook); set `PUBLIC_BASE_URL` to also receive
-events via `POST /api/webhook`.
+The post-interview **debrief** (`/debrief`, `LiveDebrief.tsx`) shows the demeanor
+analysis, transcript, and recording link for live sessions. It pulls from the verbose
+conversation on demand (so it works without a public webhook); set `PUBLIC_BASE_URL`
+to also receive events via `POST /api/webhook`.
 
 ## Stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | Vite + React 18 + TypeScript + Tailwind, `@daily-co/daily-js` |
-| Backend | Python 3.11+ + FastAPI + httpx + Pydantic |
-| Avatar | Tavus CVI: Persona + stock Replica -> Daily room |
+| Frontend (`client/`) | Vite + React 18 + TypeScript + Tailwind + shadcn/ui (the real FaceDrill app); optional Supabase waitlist |
+| Backend (`backend/`) | Python 3.11+ + FastAPI + httpx + Pydantic |
+| Avatar | Tavus CVI: Persona + stock Replica, embedded via `conversation_url` |
 
 ## Architecture
 
 ```
-Browser (Vite :5173)                    FastAPI (:8787)                 Tavus API
-  Landing -> pick visa
-  Interview -> Start
-        │  POST /api/start-session {visa_type} ──►  POST /v2/conversations ──►
-        │  ◄── {conversation_url, conversation_id} ◄──  ◄── conversation_url ──
+Browser (SPA served by FastAPI)            FastAPI (:8787)              Tavus API
+  /interview (Live)
+        │  POST /api/liveavatar/embed {category} ─►  POST /v2/conversations ─►
+        │  ◄── { url, conversation_id } ◄───────────  ◄── conversation_url ───
         ▼
-  @daily-co/daily-js join(conversation_url) ◄═══ WebRTC (Daily) ═══► Tavus replica joins,
-  attach replica video (top) + local cam (bottom)                    speaks custom greeting
+  iframe(url)  ◄═══ WebRTC (Daily, in-iframe) ═══►  Tavus officer joins, speaks
+        │
+  End ─► /debrief ─► GET /api/report/:id ─►  transcript + demeanor analysis
 ```
 
-On startup the backend verifies the key, then creates one **Persona** per visa type
-(system prompts in `backend/app/personas.py`) bound to a stock **Replica**, caching
-the persona ids in `backend/personas.json`. Unlike the original, the cache stores a
-content hash, so editing a prompt re-creates the persona instead of silently reusing
-a stale one.
+- The frontend's `category` (b1b2/f1/h1b/j1/any) maps to a backend persona
+  (`backend/app/main.py`): `b1b2` is a **general nonimmigrant officer** that adapts
+  to the category via injected `conversational_context` (so h1b/j1/any are handled by
+  one officer that asks employer/program-appropriate questions); `f1` keeps a
+  dedicated student officer.
+- **Live debrief** (`/debrief`): for Tavus sessions the page fetches `/api/report/:id`
+  and shows the demeanor analysis + transcript. The browser simulator keeps its own
+  local heuristic debrief. If the avatar embed fails (no key, network), the interview
+  falls back to the simulator automatically.
+
+On startup the backend verifies the key, then provisions one **Persona** per visa
+type (`backend/app/personas.py`) bound to a stock **Replica**, caching ids by content
+hash. Set the `PERSONA_*_ID` env vars (from `scripts/provision.py`) to skip
+provisioning entirely on ephemeral hosts.
 
 ## Prerequisites
 
@@ -88,17 +101,17 @@ a stale one.
    npm --prefix client install
    ```
 
-3. **Run both dev servers** (backend on `:8787`, frontend on `:5173`):
+3. **Run both dev servers** (backend on `:8787`, frontend on `:8080`):
 
    ```sh
    npm run dev
    ```
 
-   `npm run dev` runs `uvicorn app.main:app` and Vite together. If you are not using
-   a venv on your PATH, run the backend yourself with
-   `cd backend && uvicorn app.main:app --reload --port 8787`.
+   `npm run dev` runs `uvicorn app.main:app` and Vite together; the Vite dev server
+   proxies `/api` to the backend. If you are not using a venv on your PATH, run the
+   backend yourself with `cd backend && uvicorn app.main:app --reload --port 8787`.
 
-4. **Open** [http://localhost:5173](http://localhost:5173), pick a visa type, click **Start**, and grant microphone + camera permission.
+4. **Open** [http://localhost:8080](http://localhost:8080), go to Practice → Start, and grant microphone + camera permission. (`/interview?mode=sim` forces the offline simulator.)
 
 ## Choosing the interviewer face (replica)
 
@@ -203,6 +216,7 @@ curl http://localhost:8787/api/health
 |---|---|---|
 | GET | `/api/health` | Key status, active replica, persona ids |
 | GET | `/api/replicas` | List stock replicas to choose a face |
+| POST | `/api/liveavatar/embed` | `{category}` -> `{url, conversation_id}` (the frontend's avatar-embed contract; maps category to a persona) |
 | POST | `/api/start-session` | `{visa_type, language?, applicant_id?}` -> `{conversation_url, conversation_id}` |
 | POST | `/api/end-session` | `{conversation_id}` -> ends the Tavus conversation |
 | GET | `/api/report/{conversation_id}` | Demeanor analysis + transcript + recording url |
