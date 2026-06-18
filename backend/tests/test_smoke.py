@@ -181,6 +181,7 @@ def test_build_persona_payload_has_all_layers() -> None:
         pronunciation_dictionary_id="pd1",
     )
     payload = build_persona_payload(SPECS["n400"], "r_test", "tavus-gpt-oss", deps)
+    assert "repeat or rephrase the question" in payload["system_prompt"]  # silence handling
     layers = payload["layers"]
     assert layers["perception"]["perception_model"] == "raven-1"
     assert layers["perception"]["perception_analysis_queries"]

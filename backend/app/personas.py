@@ -36,6 +36,16 @@ PERCEPTION_ANALYSIS: list[str] = [
     "Assess the applicant's overall composure and confidence during the interview.",
 ]
 
+# Appended to every officer's prompt: how to handle silence, and to keep repeat
+# sessions from feeling identical.
+SHARED_GUIDANCE = (
+    "If the applicant is silent or does not answer, briefly repeat or rephrase the "
+    "question once. If they still do not respond, acknowledge it and move on to the "
+    "next question rather than waiting. Vary your exact wording and, where natural, "
+    "the order in which you cover topics, so repeated interviews do not feel "
+    "identical to the same applicant."
+)
+
 
 class PersonaSpec(BaseModel):
     """Static definition of one interviewer persona."""
@@ -166,7 +176,7 @@ def build_persona_payload(
 
     payload: dict[str, Any] = {
         "persona_name": spec.name,
-        "system_prompt": spec.system_prompt,
+        "system_prompt": f"{spec.system_prompt}\n\n{SHARED_GUIDANCE}",
         "pipeline_mode": "full",
         "default_replica_id": replica_id,
         "layers": layers,
