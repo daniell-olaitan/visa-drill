@@ -6,6 +6,13 @@ WORKDIR /client
 COPY client/package.json client/package-lock.json ./
 RUN npm ci
 COPY client/ ./
+# VITE_ vars are baked in at build time. Render passes service env vars as build
+# args for declared ARGs; default empty so the build works without Supabase (the
+# waitlist then falls back to local-only).
+ARG VITE_SUPABASE_URL=""
+ARG VITE_SUPABASE_PUBLISHABLE_KEY=""
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
 RUN npm run build
 
 # 2. Python backend that also serves the built client from /app/static.

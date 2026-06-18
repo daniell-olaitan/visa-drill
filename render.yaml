@@ -35,4 +35,11 @@ services:
         sync: false
       - key: PERSONA_N400_ID
         sync: false
+      # Supabase waitlist (optional). VITE_ vars are baked into the SPA at build
+      # time; Render passes them as Docker build args (the Dockerfile declares
+      # matching ARGs). Leave unset to keep the waitlist local-only.
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        sync: false
     # RENDER_EXTERNAL_URL is injected automatically and used as the webhook base.
