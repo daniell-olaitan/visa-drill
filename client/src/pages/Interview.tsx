@@ -5,6 +5,7 @@ import SimulatedInterview from "@/components/interview/SimulatedInterview";
 import LiveAvatarVideoInterview from "@/components/interview/LiveAvatarVideoInterview";
 import PrepForm from "@/components/interview/PrepForm";
 import { getStoredCategory, saveSession, type PrepAnswers } from "@/lib/interviewStorage";
+import { unlockAudio } from "@/lib/audio";
 import type { AnswerRecord } from "@/lib/interviewEngine";
 import type { Question } from "@/lib/questionBank";
 
@@ -69,12 +70,16 @@ const Interview = () => {
   }, []);
 
   const onPrepSubmit = useCallback((answers: PrepAnswers, ctx: string | null) => {
+    unlockAudio(); // inside the user gesture, so iOS lets the officer's voice autoplay
     setPrepAnswers(answers);
     setPrepContext(ctx);
     setPrepDone(true);
   }, []);
 
-  const onPrepSkip = useCallback(() => setPrepDone(true), []);
+  const onPrepSkip = useCallback(() => {
+    unlockAudio();
+    setPrepDone(true);
+  }, []);
 
   const live = prepDone ? (
     <LiveAvatarVideoInterview
