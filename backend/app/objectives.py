@@ -53,6 +53,40 @@ OBJECTIVES: dict[VisaType, list[dict[str, Any]]] = {
             "output_variables": ["post_graduation_plan", "intent_assessment"],
         },
     ],
+    "h1b": [
+        {
+            "objective_name": "employer_verified",
+            "objective_prompt": "Determine whether the U.S. employer is a real, operating business with a genuine need for the role.",
+            "output_variables": ["employer", "employer_assessment"],
+        },
+        {
+            "objective_name": "role_and_qualifications",
+            "objective_prompt": "Determine whether the job is a specialty occupation and whether the applicant's degree and experience qualify them for it.",
+            "output_variables": ["job_title", "degree", "qualification_assessment"],
+        },
+        {
+            "objective_name": "compensation",
+            "objective_prompt": "Confirm the offered salary and that it is consistent with the role.",
+            "output_variables": ["salary"],
+        },
+    ],
+    "j1": [
+        {
+            "objective_name": "program_and_sponsor",
+            "objective_prompt": "Determine the exchange program, its category and dates, and its designated sponsor.",
+            "output_variables": ["program", "sponsor"],
+        },
+        {
+            "objective_name": "funding",
+            "objective_prompt": "Determine how the exchange program is funded.",
+            "output_variables": ["funding_source"],
+        },
+        {
+            "objective_name": "intent_to_return",
+            "objective_prompt": "Determine whether the applicant has plans and ties showing they will return home, including awareness of the two-year home-residency requirement (212(e)) if applicable.",
+            "output_variables": ["return_plan", "intent_assessment"],
+        },
+    ],
     "n400": [
         {
             "objective_name": "identity_confirmed",

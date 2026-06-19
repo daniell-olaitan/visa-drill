@@ -29,7 +29,7 @@ def test_health(client: TestClient) -> None:
     body = res.json()
     assert body["api_key_valid"] is True
     assert body["replica_id"] == "r_test"
-    assert set(body["personas"]) == {"b1b2", "f1", "n400"}
+    assert set(body["personas"]) == {"b1b2", "f1", "h1b", "j1", "n400"}
 
 
 def test_list_replicas(client: TestClient) -> None:
@@ -78,11 +78,10 @@ def test_embed_maps_category_to_persona(client: TestClient, fake_client: FakeTav
     body = res.json()
     assert body["url"] == "https://tavus.daily.co/c123"
     assert body["conversation_id"] == "c123"
-    # h1b (no dedicated persona) maps to the general b1b2 officer, with H-1B context.
+    # h1b now has its own dedicated officer persona.
     post = next(c for c in fake_client.calls if c[0] == "POST" and c[1] == "/conversations")
     assert post[2] is not None
-    assert post[2]["persona_id"] == "p_b1b2"
-    assert "H-1B" in post[2]["conversational_context"]
+    assert post[2]["persona_id"] == "p_h1b"
 
 
 def test_embed_includes_applicant_context(client: TestClient, fake_client: FakeTavusClient) -> None:
@@ -97,7 +96,7 @@ def test_embed_includes_applicant_context(client: TestClient, fake_client: FakeT
 
 
 def test_start_session_invalid_visa(client: TestClient) -> None:
-    res = client.post("/api/start-session", json={"visa_type": "h1b"})
+    res = client.post("/api/start-session", json={"visa_type": "tourist"})
     assert res.status_code == 422  # rejected by the Literal schema
 
 
@@ -225,21 +224,22 @@ def test_ensure_personas_creates_reuses_resyncs(
     monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
     tavus = cast(TavusClient, fake_client)
     deps = _deps_by_visa()
+    n = len(VISA_TYPES)
 
-    # First run: nothing cached -> three personas created.
+    # First run: nothing cached -> one persona created per visa type.
     first = asyncio.run(ensure_personas(tavus, "r_test", "tavus-gpt-oss", deps))
-    assert set(first) == {"b1b2", "f1", "n400"}
-    assert fake_client.create_count == 3
+    assert set(first) == set(VISA_TYPES)
+    assert fake_client.create_count == n
 
     # Mark them as existing; same inputs -> reuse, no new creates.
     fake_client.existing.update(first.values())
     second = asyncio.run(ensure_personas(tavus, "r_test", "tavus-gpt-oss", deps))
     assert second == first
-    assert fake_client.create_count == 3
+    assert fake_client.create_count == n
 
     # Change the model -> payload hash differs -> re-created (the staleness fix).
     third = asyncio.run(ensure_personas(tavus, "r_test", "tavus-gemini-3-flash", deps))
-    assert fake_client.create_count == 6
+    assert fake_client.create_count == 2 * n
     assert third != first
 
 
@@ -278,8 +278,10 @@ def test_preset_personas(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     monkeypatch.setenv("TAVUS_API_KEY", "sk-test")
 
+    keys = ("PERSONA_B1B2_ID", "PERSONA_F1_ID", "PERSONA_H1B_ID", "PERSONA_J1_ID", "PERSONA_N400_ID")
+
     # None set -> None (app provisions normally).
-    for key in ("PERSONA_B1B2_ID", "PERSONA_F1_ID", "PERSONA_N400_ID"):
+    for key in keys:
         monkeypatch.delenv(key, raising=False)
     assert config.load_settings().preset_personas() is None
 
@@ -288,9 +290,17 @@ def test_preset_personas(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PERSONA_F1_ID", "p2")
     assert config.load_settings().preset_personas() is None
 
-    # All three -> the map.
-    monkeypatch.setenv("PERSONA_N400_ID", "p3")
-    assert config.load_settings().preset_personas() == {"b1b2": "p1", "f1": "p2", "n400": "p3"}
+    # All set -> the full map.
+    monkeypatch.setenv("PERSONA_H1B_ID", "p3")
+    monkeypatch.setenv("PERSONA_J1_ID", "p4")
+    monkeypatch.setenv("PERSONA_N400_ID", "p5")
+    assert config.load_settings().preset_personas() == {
+        "b1b2": "p1",
+        "f1": "p2",
+        "h1b": "p3",
+        "j1": "p4",
+        "n400": "p5",
+    }
 
 
 def test_recording_storage_builder(monkeypatch: pytest.MonkeyPatch) -> None:

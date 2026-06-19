@@ -127,7 +127,13 @@ def client(fake_client: FakeTavusClient) -> TestClient:
         recording_role_arn=None,
     )
     app.state.client = fake_client
-    app.state.personas = {"b1b2": "p_b1b2", "f1": "p_f1", "n400": "p_n400"}
+    app.state.personas = {
+        "b1b2": "p_b1b2",
+        "f1": "p_f1",
+        "h1b": "p_h1b",
+        "j1": "p_j1",
+        "n400": "p_n400",
+    }
     app.state.events = {}
     # Not used as a context manager, so the real lifespan never runs.
     return TestClient(app)

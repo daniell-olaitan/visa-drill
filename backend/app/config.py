@@ -28,18 +28,22 @@ class Settings(BaseSettings):
     # conserve Tavus minutes. The Tavus hard cap is set a little above this.
     interview_duration_seconds: int = 240
 
-    # Pre-provisioned persona ids (from `scripts/provision.py`). When all three are
-    # set, startup skips creating any Tavus resources, so ephemeral hosts (e.g. Render
+    # Pre-provisioned persona ids (from `scripts/provision.py`). When ALL are set,
+    # startup skips creating any Tavus resources, so ephemeral hosts (e.g. Render
     # free) do not re-provision and duplicate resources on every cold start.
     persona_b1b2_id: str | None = None
     persona_f1_id: str | None = None
+    persona_h1b_id: str | None = None
+    persona_j1_id: str | None = None
     persona_n400_id: str | None = None
 
     def preset_personas(self) -> dict[str, str] | None:
-        """Return the persona-id map if all three are set via env, else None."""
+        """Return the persona-id map if every persona id is set via env, else None."""
         ids = {
             "b1b2": self.persona_b1b2_id,
             "f1": self.persona_f1_id,
+            "h1b": self.persona_h1b_id,
+            "j1": self.persona_j1_id,
             "n400": self.persona_n400_id,
         }
         if all(ids.values()):

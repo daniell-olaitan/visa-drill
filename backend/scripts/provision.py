@@ -25,7 +25,13 @@ from app.tavus import TavusClient  # noqa: E402
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("provision")
 
-ENV_KEYS = {"b1b2": "PERSONA_B1B2_ID", "f1": "PERSONA_F1_ID", "n400": "PERSONA_N400_ID"}
+ENV_KEYS = {
+    "b1b2": "PERSONA_B1B2_ID",
+    "f1": "PERSONA_F1_ID",
+    "h1b": "PERSONA_H1B_ID",
+    "j1": "PERSONA_J1_ID",
+    "n400": "PERSONA_N400_ID",
+}
 
 
 async def run() -> int:
