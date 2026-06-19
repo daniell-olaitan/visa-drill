@@ -60,17 +60,42 @@ CATEGORY_TO_VISA: dict[str, VisaType] = {
 # Per-category context injected into the conversation so the general officer
 # tailors its questions (the F-1 persona already specializes, but context helps).
 CATEGORY_CONTEXT: dict[str, str] = {
-    "b1b2": "The applicant is applying for a B1/B2 visitor visa.",
-    "f1": "The applicant is applying for an F-1 student visa.",
+    "b1b2": (
+        "The applicant is applying for a B1/B2 visitor visa (tourism or short "
+        "business). This is a nonimmigrant visa, so the core test is nonimmigrant "
+        "intent under section 214(b). Probe the specific purpose of the trip, the "
+        "itinerary and length of stay, who is paying, and above all their ties to "
+        "their home country (job, family, property) that ensure they will return."
+    ),
+    "f1": (
+        "The applicant is applying for an F-1 student visa. Probe why they chose "
+        "this specific school and program, how they will fund tuition and living "
+        "costs and who is sponsoring them, why study in the U.S. rather than at "
+        "home, and their plans and intent to return after graduation. F-1 requires "
+        "nonimmigrant intent."
+    ),
     "h1b": (
         "The applicant is applying for an H-1B specialty-occupation work visa. "
-        "Probe the employer, the role, and the applicant's qualifications."
+        "Important: H-1B is a DUAL-INTENT visa, so do NOT pressure them about intent "
+        "to return or ties to home. Instead probe whether the petitioning employer "
+        "is a real, operating business with a genuine need; whether the job is a "
+        "true specialty occupation; their specific role and duties; their degree, "
+        "field of study, and how it qualifies them; relevant prior experience; and "
+        "the offered salary. Confirm the work matches the filed petition."
     ),
     "j1": (
-        "The applicant is applying for a J-1 exchange visitor visa. "
-        "Probe the program, its sponsor, and intent to return home."
+        "The applicant is applying for a J-1 exchange visitor visa, a nonimmigrant "
+        "visa where intent to return matters. Probe the exchange program and its "
+        "designated sponsor (per the DS-2019), the program category and dates, how "
+        "it is funded, their ties to their home country and plans afterward, and "
+        "where relevant their awareness of the two-year home-residency requirement "
+        "(section 212(e))."
     ),
-    "any": "The applicant is applying for a U.S. nonimmigrant visa.",
+    "any": (
+        "The applicant is applying for a U.S. nonimmigrant visa. Establish the visa "
+        "category early, then probe the purpose, the specifics of the plan, funding, "
+        "ties to the home country, and prior travel history."
+    ),
 }
 
 
