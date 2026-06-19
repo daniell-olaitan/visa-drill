@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     port: int = 8787
     cors_origin: str = "http://localhost:5173"
 
+    # Visible interview length in seconds (the client countdown). Keep it short to
+    # conserve Tavus minutes. The Tavus hard cap is set a little above this.
+    interview_duration_seconds: int = 240
+
     # Pre-provisioned persona ids (from `scripts/provision.py`). When all three are
     # set, startup skips creating any Tavus resources, so ephemeral hosts (e.g. Render
     # free) do not re-provision and duplicate resources on every cold start.

@@ -40,8 +40,9 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 logger = logging.getLogger("facedrill")
 
 # Conversation runtime limits. Idle Tavus sessions keep billing GPU time, so both
-# timeouts are always set (see TAVUS_GUIDE.md section 8).
-MAX_CALL_DURATION_S = 8 * 60
+# timeouts are always set (see TAVUS_GUIDE.md section 8). The hard call cap is the
+# visible interview length plus a small safety buffer.
+CALL_DURATION_BUFFER_S = 30
 PARTICIPANT_LEFT_TIMEOUT_S = 10
 PARTICIPANT_ABSENT_TIMEOUT_S = 60
 
@@ -162,7 +163,7 @@ async def start_session(body: StartSessionRequest) -> StartSessionResponse:
     persona_id = _personas(app)[body.visa_type]
 
     properties: dict[str, Any] = {
-        "max_call_duration": MAX_CALL_DURATION_S,
+        "max_call_duration": settings.interview_duration_seconds + CALL_DURATION_BUFFER_S,
         "participant_left_timeout": PARTICIPANT_LEFT_TIMEOUT_S,
         "participant_absent_timeout": PARTICIPANT_ABSENT_TIMEOUT_S,
         "enable_closed_captions": True,
@@ -215,6 +216,7 @@ async def embed(body: EmbedRequest) -> EmbedResponse:
     Mirrors the frontend's existing LiveAvatar embed contract ({category} -> {url})
     so the interview UI works unchanged, but the URL is a Tavus Daily room.
     """
+    settings: Settings = app.state.settings
     category = body.category.lower()
     visa_type: VisaType = CATEGORY_TO_VISA.get(category) or "b1b2"
     parts = [p for p in (CATEGORY_CONTEXT.get(category), body.applicant_context) if p]
@@ -222,7 +224,11 @@ async def embed(body: EmbedRequest) -> EmbedResponse:
     session = await start_session(
         StartSessionRequest(visa_type=visa_type, conversational_context=context)
     )
-    return EmbedResponse(url=session.conversation_url, conversation_id=session.conversation_id)
+    return EmbedResponse(
+        url=session.conversation_url,
+        conversation_id=session.conversation_id,
+        max_seconds=settings.interview_duration_seconds,
+    )
 
 
 @app.post("/api/end-session")

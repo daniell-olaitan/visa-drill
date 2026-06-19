@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { createLiveAvatarEmbed } from "@/lib/liveavatar";
 import type { VisaCategory } from "@/lib/questionBank";
+
+const FALLBACK_SECONDS = 240;
 
 interface LiveAvatarVideoInterviewProps {
   category: VisaCategory;
@@ -15,6 +18,8 @@ interface LiveAvatarVideoInterviewProps {
   onUnavailable: (reason: string) => void;
 }
 
+const formatTime = (s: number): string => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
 const LiveAvatarVideoInterview = ({
   category,
   context,
@@ -24,6 +29,7 @@ const LiveAvatarVideoInterview = ({
 }: LiveAvatarVideoInterviewProps) => {
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const conversationIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -34,6 +40,7 @@ const LiveAvatarVideoInterview = ({
         if (!cancelled) {
           conversationIdRef.current = embed.conversationId ?? null;
           setEmbedUrl(embed.url);
+          setSecondsLeft(embed.maxSeconds ?? FALLBACK_SECONDS);
           setLoading(false);
         }
       })
@@ -48,15 +55,38 @@ const LiveAvatarVideoInterview = ({
     };
   }, [category, context, onUnavailable]);
 
+  // Countdown: ends the interview (and routes to the debrief) when it hits zero.
+  useEffect(() => {
+    if (secondsLeft === null) return;
+    if (secondsLeft <= 0) {
+      onComplete(conversationIdRef.current);
+      return;
+    }
+    const id = window.setTimeout(
+      () => setSecondsLeft((s) => (s === null ? null : s - 1)),
+      1000,
+    );
+    return () => window.clearTimeout(id);
+  }, [secondsLeft, onComplete]);
+
+  const lowTime = secondsLeft !== null && secondsLeft <= 30;
+
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background">
       <div className="container flex h-14 shrink-0 items-center justify-between gap-2 sm:h-16">
         <Button variant="ghost" size="sm" onClick={onLeave} className="text-muted-foreground">
           Leave
         </Button>
-        <span className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <span
+          className={cn(
+            "flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold tabular-nums",
+            lowTime
+              ? "border-destructive/50 bg-destructive/10 text-destructive"
+              : "border-border bg-card text-muted-foreground",
+          )}
+        >
           <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-destructive" />
-          Live
+          {secondsLeft !== null ? formatTime(secondsLeft) : "Live"}
         </span>
         <Button
           variant="outline"

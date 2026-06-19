@@ -20,6 +20,9 @@ services:
         sync: false
       - key: RECORDING_AZURE_CONTAINER
         value: conversation-recordings
+      # Interview length in seconds (lower to conserve free-tier minutes).
+      - key: INTERVIEW_DURATION_SECONDS
+        value: "240"
       - key: RECORDING_AZURE_TENANT_ID
         sync: false
       - key: RECORDING_AZURE_CLIENT_ID

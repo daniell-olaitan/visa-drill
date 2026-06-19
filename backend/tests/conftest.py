@@ -116,6 +116,7 @@ def client(fake_client: FakeTavusClient) -> TestClient:
         tavus_llm_model="tavus-gpt-oss",
         cors_origin="http://localhost:5173",
         port=8787,
+        interview_duration_seconds=240,
         default_language="english",
         civics_document_url="",
         public_base_url=None,

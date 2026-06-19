@@ -40,6 +40,8 @@ class EmbedResponse(BaseModel):
 
     url: str
     conversation_id: str
+    # Visible interview length for the client countdown timer.
+    max_seconds: int
 
 
 class EndSessionRequest(BaseModel):

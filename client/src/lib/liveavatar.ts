@@ -4,6 +4,8 @@ export interface LiveAvatarEmbed {
   url: string;
   /** Tavus conversation id, used afterwards to fetch the debrief report. */
   conversationId?: string;
+  /** Visible interview length in seconds for the countdown timer. */
+  maxSeconds?: number;
 }
 
 // Served by the FastAPI backend, which creates a Tavus conversation and returns
@@ -23,7 +25,9 @@ export const createLiveAvatarEmbed = async (
     body: JSON.stringify({ category, applicant_context: applicantContext ?? undefined }),
   });
 
-  let payload: { url?: string; conversation_id?: string; error?: string } | null = null;
+  let payload:
+    | { url?: string; conversation_id?: string; max_seconds?: number; error?: string }
+    | null = null;
   try {
     payload = await res.json();
   } catch {
@@ -37,5 +41,9 @@ export const createLiveAvatarEmbed = async (
     throw new Error("LiveAvatar embed URL was not returned");
   }
 
-  return { url: payload.url, conversationId: payload.conversation_id };
+  return {
+    url: payload.url,
+    conversationId: payload.conversation_id,
+    maxSeconds: payload.max_seconds,
+  };
 };
