@@ -1,4 +1,4 @@
-"""Probe a Tavus account/key to see which FaceDrill features it supports.
+"""Probe a Tavus account/key to see which VisaDrill features it supports.
 
 Creates a throwaway instance of each resource (guardrail, objective, document,
 pronunciation dictionary, persona) and an optional `test_mode` conversation, reports
@@ -55,7 +55,7 @@ async def _delete(client: TavusClient, path: str, *, keep: bool) -> None:
 
 
 def _report(results: list[tuple[str, bool, str]]) -> None:
-    logger.info("\n=== FaceDrill / Tavus feature support ===")
+    logger.info("\n=== VisaDrill / Tavus feature support ===")
     width = max(len(name) for name, _, _ in results)
     for name, ok, detail in results:
         mark = "OK  " if ok else "FAIL"
@@ -267,7 +267,7 @@ async def run(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Probe Tavus feature support for FaceDrill.")
+    parser = argparse.ArgumentParser(description="Probe Tavus feature support for VisaDrill.")
     parser.add_argument("--skip-conversation", action="store_true", help="Skip test_mode conversation probes.")
     parser.add_argument("--keep", action="store_true", help="Do not delete created resources.")
     args = parser.parse_args()

@@ -1,4 +1,4 @@
-"""FaceDrill FastAPI backend: turns visa-interview personas into live Tavus CVI calls.
+"""VisaDrill FastAPI backend: turns visa-interview personas into live Tavus CVI calls.
 
 Provisions the full Tavus feature set at startup (personas with perception, STT,
 flow, and pronunciation layers; objectives; guardrails; a civics knowledge-base
@@ -37,7 +37,7 @@ from .provisioning import provision
 from .tavus import TavusApiError, TavusClient
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-logger = logging.getLogger("facedrill")
+logger = logging.getLogger("visadrill")
 
 # Conversation runtime limits. Idle Tavus sessions keep billing GPU time, so both
 # timeouts are always set (see TAVUS_GUIDE.md section 8). The hard call cap is the
@@ -102,7 +102,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await client.aclose()
 
 
-app = FastAPI(title="FaceDrill", lifespan=lifespan)
+app = FastAPI(title="VisaDrill", lifespan=lifespan)
 
 
 def _client(app: FastAPI) -> TavusClient:
@@ -161,7 +161,7 @@ async def start_session(body: StartSessionRequest) -> StartSessionResponse:
     payload: dict[str, Any] = {
         "persona_id": persona_id,
         "replica_id": settings.tavus_replica_id,
-        "conversation_name": f"FaceDrill {body.visa_type}",
+        "conversation_name": f"VisaDrill {body.visa_type}",
         "custom_greeting": SPECS[body.visa_type].greeting,
         "properties": properties,
     }

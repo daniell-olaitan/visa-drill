@@ -27,9 +27,9 @@ export interface StoredSession {
   prep?: PrepAnswers;
 }
 
-const SESSION_KEY = "facedrill.session";
-const CATEGORY_KEY = "facedrill.category";
-const LAST_SCORE_KEY = "facedrill.lastLiveScore";
+const SESSION_KEY = "visadrill.session";
+const CATEGORY_KEY = "visadrill.category";
+const LAST_SCORE_KEY = "visadrill.lastLiveScore";
 
 const safeParse = <T>(value: string | null): T | null => {
   if (!value) return null;

@@ -1,4 +1,4 @@
-"""Smoke tests for the FaceDrill backend: routes (mocked Tavus) and persona logic."""
+"""Smoke tests for the VisaDrill backend: routes (mocked Tavus) and persona logic."""
 
 from __future__ import annotations
 

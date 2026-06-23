@@ -19,7 +19,7 @@ from .personas import VISA_TYPES, PersonaDeps, PersonaMap, VisaType, ensure_pers
 from .pronunciation import ensure_pronunciation_dictionary
 from .tavus import TavusApiError, TavusClient
 
-logger = logging.getLogger("facedrill")
+logger = logging.getLogger("visadrill")
 
 
 async def provision(client: TavusClient, settings: Settings) -> PersonaMap:

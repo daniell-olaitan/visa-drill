@@ -1,4 +1,4 @@
-# FaceDrill
+# VisaDrill
 
 Practice your US visa interview with a face that feels real, so the real one
 feels familiar.
@@ -43,7 +43,7 @@ Requires Node.js & npm.
 
 ```sh
 git clone <YOUR_GIT_URL>
-cd facedrill
+cd visadrill
 npm install
 npm run dev
 ```
@@ -129,9 +129,9 @@ The repo includes a `Dockerfile` and `nginx.conf` for serving the built static
 site. Deploy to GCP Cloud Run with:
 
 ```sh
-gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/facedrill
-gcloud run deploy facedrill \
-  --image gcr.io/YOUR_PROJECT_ID/facedrill \
+gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/visadrill
+gcloud run deploy visadrill \
+  --image gcr.io/YOUR_PROJECT_ID/visadrill \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \

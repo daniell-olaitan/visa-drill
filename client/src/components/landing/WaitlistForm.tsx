@@ -21,7 +21,7 @@ const ShareRow = ({ result }: { result: WaitlistResult }) => {
   const [copied, setCopied] = useState(false);
   const link = getReferralLink(result.referralCode);
   const message = encodeURIComponent(
-    `I'm practicing for my US visa interview with a hyperreal AI officer on FaceDrill. Join the waitlist: ${link}`,
+    `I'm practicing for my US visa interview with a hyperreal AI officer on VisaDrill. Join the waitlist: ${link}`,
   );
 
   const copy = async () => {

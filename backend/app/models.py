@@ -1,4 +1,4 @@
-"""Request and response schemas for the FaceDrill API."""
+"""Request and response schemas for the VisaDrill API."""
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 /*
- * The FaceDrill question bank.
+ * The VisaDrill question bank.
  *
  * Built from the structure consular officers actually use. Under INA 214(b),
  * every nonimmigrant applicant is presumed to be an intending immigrant until

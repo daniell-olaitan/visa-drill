@@ -36,12 +36,12 @@ const Header = () => {
       <div className="container flex h-16 items-center justify-between">
         <Link
           to="/"
-          aria-label="FaceDrill home"
+          aria-label="VisaDrill home"
           className="flex items-center gap-2.5 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <img src="/logo.svg" alt="" className="h-7 w-7" aria-hidden="true" />
           <span className="font-display text-xl font-semibold tracking-tight text-foreground">
-            FaceDrill
+            VisaDrill
           </span>
         </Link>
 

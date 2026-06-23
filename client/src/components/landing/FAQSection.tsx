@@ -9,7 +9,7 @@ import {
 const faqs = [
   {
     q: "Will this tell me what to say?",
-    a: "No, and be wary of anything that does. Officers are trained to spot rehearsed scripts and coached lies. FaceDrill helps you say your own true story clearly and confidently, which is what actually gets people approved.",
+    a: "No, and be wary of anything that does. Officers are trained to spot rehearsed scripts and coached lies. VisaDrill helps you say your own true story clearly and confidently, which is what actually gets people approved.",
   },
   {
     q: "Do I need to upload any documents?",
@@ -21,7 +21,7 @@ const faqs = [
   },
   {
     q: "Is this affiliated with the US government?",
-    a: "No. FaceDrill is an independent practice tool. It is not connected to the U.S. Department of State, any embassy, or any consulate, and nothing here is legal advice. For official guidance, see travel.state.gov.",
+    a: "No. VisaDrill is an independent practice tool. It is not connected to the U.S. Department of State, any embassy, or any consulate, and nothing here is legal advice. For official guidance, see travel.state.gov.",
   },
   {
     q: "How much does it cost?",

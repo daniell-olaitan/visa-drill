@@ -8,7 +8,7 @@ Three interview modes:
 - **Student Visa (F-1)** - consular interview, ~4 minutes
 - **Citizenship (N-400)** - USCIS naturalization interview, ~6 minutes
 
-> **Single service**: the FastAPI backend serves the real FaceDrill SPA (the
+> **Single service**: the FastAPI backend serves the real VisaDrill SPA (the
 > `jedidiah-oladele/facedrill` Vite/React/shadcn app, in `client/`) and provides the
 > Tavus-backed `/api`. The interview's hyperreal officer is rendered by **Tavus CVI**
 > (the frontend embeds the Tavus `conversation_url` through its existing avatar-embed
@@ -41,7 +41,7 @@ to also receive events via `POST /api/webhook`.
 
 | Layer | Technology |
 |---|---|
-| Frontend (`client/`) | Vite + React 18 + TypeScript + Tailwind + shadcn/ui (the real FaceDrill app); optional Supabase waitlist |
+| Frontend (`client/`) | Vite + React 18 + TypeScript + Tailwind + shadcn/ui (the real VisaDrill app); optional Supabase waitlist |
 | Backend (`backend/`) | Python 3.11+ + FastAPI + httpx + Pydantic |
 | Avatar | Tavus CVI: Persona + stock Replica, embedded via `conversation_url` |
 
@@ -177,7 +177,7 @@ subject = your **Tavus Workspace ID** from the Tavus platform profile). Run:
 
 ```sh
 az login
-STORAGE_ACCOUNT=facedrillrec RESOURCE_GROUP=facedrill-rg \
+STORAGE_ACCOUNT=visadrillrec RESOURCE_GROUP=visadrill-rg \
   WORKSPACE_ID=<your-tavus-workspace-id> ./infra/azure/setup-recording.sh
 ```
 

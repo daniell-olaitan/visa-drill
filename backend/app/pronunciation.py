@@ -27,13 +27,13 @@ RULES: list[dict[str, str]] = [
 
 async def ensure_pronunciation_dictionary(client: TavusClient) -> str:
     """Create or reuse the pronunciation dictionary and return its id."""
-    want_hash = cache.hash_spec({"name": "facedrill-terms", "rules": RULES})
+    want_hash = cache.hash_spec({"name": "visadrill-terms", "rules": RULES})
 
     async def create(_client: TavusClient, _key: str) -> str:
         created = await _client.request_json(
             "POST",
             "/pronunciation-dictionaries",
-            json={"name": "facedrill-terms", "rules": RULES},
+            json={"name": "visadrill-terms", "rules": RULES},
         )
         return cache.extract_id(created, "pronunciation_dictionary_id", "id", "uuid")
 

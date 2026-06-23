@@ -16,8 +16,8 @@ export interface WaitlistResult {
   alreadyJoined: boolean;
 }
 
-const JOINED_KEY = "facedrill.waitlist";
-const REF_KEY = "facedrill.ref";
+const JOINED_KEY = "visadrill.waitlist";
+const REF_KEY = "visadrill.ref";
 
 export const getJoinedState = (): WaitlistResult | null => {
   try {

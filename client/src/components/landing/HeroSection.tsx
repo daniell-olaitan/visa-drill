@@ -31,7 +31,7 @@ const HeroSection = () => {
 
           <Reveal delay={200}>
             <p className="mx-auto mt-6 max-w-xl text-balance text-base leading-relaxed text-muted-foreground md:text-lg">
-              Your US visa interview lasts about three minutes. FaceDrill puts you
+              Your US visa interview lasts about three minutes. VisaDrill puts you
               across from a hyperreal AI consular officer who asks what they
               actually ask, so the real thing feels like your second time.
             </p>
@@ -61,7 +61,7 @@ const HeroSection = () => {
           <figure className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-strong md:rounded-3xl">
             <img
               src={heroImage}
-              alt="A FaceDrill practice session: a hyperreal AI consular officer asking interview questions over video"
+              alt="A VisaDrill practice session: a hyperreal AI consular officer asking interview questions over video"
               className="block w-full"
               loading="eager"
             />

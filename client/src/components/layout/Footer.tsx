@@ -11,7 +11,7 @@ const Footer = () => {
           <div className="max-w-sm">
             <Link to="/" className="flex items-center gap-2.5">
               <img src="/logo.svg" alt="" className="h-6 w-6" aria-hidden="true" />
-              <span className="font-display text-lg font-semibold tracking-tight">FaceDrill</span>
+              <span className="font-display text-lg font-semibold tracking-tight">VisaDrill</span>
             </Link>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               Practice your US visa interview with a face that feels real, so the
@@ -40,12 +40,12 @@ const Footer = () => {
 
         <div className="mt-10 border-t border-border/70 pt-6">
           <p className="text-xs leading-relaxed text-muted-foreground/80">
-            FaceDrill is an independent practice tool. It is not affiliated with the
+            VisaDrill is an independent practice tool. It is not affiliated with the
             U.S. Department of State or any government agency, and nothing here is
             legal advice. Practice sessions stay on your device.
           </p>
           <p className="mt-2 text-xs text-muted-foreground/60">
-            © {new Date().getFullYear()} FaceDrill
+            © {new Date().getFullYear()} VisaDrill
           </p>
         </div>
       </div>
