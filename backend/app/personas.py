@@ -71,7 +71,7 @@ SPECS: dict[VisaType, PersonaSpec] = {
     "b1b2": PersonaSpec(
         name="Consular Officer - Visitor Visa",
         greeting=(
-            "Good morning. Please state your full name and the purpose of your "
+            "Good morning. Please state the purpose of your "
             "visit to the United States."
         ),
         hotwords="USCIS, consular, B1/B2, visa, itinerary, sponsor, ties",
@@ -91,7 +91,7 @@ When an answer is vague, press once for specifics: names, numbers, dates. Keep y
     "f1": PersonaSpec(
         name="Consular Officer - Student Visa",
         greeting=(
-            "Good morning. Please state your full name and the university you "
+            "Good morning. Please state the university you "
             "will be attending."
         ),
         hotwords="USCIS, consular, F-1, visa, university, sponsor, tuition, major",
@@ -112,7 +112,7 @@ When an answer is vague, inconsistent, or suggests immigrant intent, ask one sho
     "h1b": PersonaSpec(
         name="Consular Officer - Work Visa",
         greeting=(
-            "Good morning. Please state your full name and the name of your "
+            "Good morning. Please state the name of your "
             "U.S. employer."
         ),
         hotwords="USCIS, H-1B, petition, petitioner, employer, specialty occupation, LCA, salary",
@@ -133,7 +133,7 @@ When an answer is vague, press once for specifics: names, numbers, dates. Keep y
     "j1": PersonaSpec(
         name="Consular Officer - Exchange Visa",
         greeting=(
-            "Good morning. Please state your full name and the exchange program "
+            "Good morning. Please state the exchange program "
             "you will be joining."
         ),
         hotwords="USCIS, J-1, exchange visitor, DS-2019, sponsor, program, 212(e)",

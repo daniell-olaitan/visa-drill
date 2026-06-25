@@ -3,8 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Settings2, X } from "lucide-react";
 import SimulatedInterview from "@/components/interview/SimulatedInterview";
 import LiveAvatarVideoInterview from "@/components/interview/LiveAvatarVideoInterview";
-import PrepForm from "@/components/interview/PrepForm";
-import { getStoredCategory, saveSession, type PrepAnswers } from "@/lib/interviewStorage";
+import Briefing from "@/components/interview/Briefing";
+import { getStoredCategory, saveSession } from "@/lib/interviewStorage";
 import { unlockAudio } from "@/lib/audio";
 import type { AnswerRecord } from "@/lib/interviewEngine";
 import type { Question } from "@/lib/questionBank";
@@ -25,10 +25,8 @@ const Interview = () => {
   const [noticeDismissed, setNoticeDismissed] = useState(false);
   const startedAt = useState(() => new Date().toISOString())[0];
 
-  // Optional "DS-160-lite" pre-interview form (live mode only).
-  const [prepDone, setPrepDone] = useState(false);
-  const [prepContext, setPrepContext] = useState<string | null>(null);
-  const [prepAnswers, setPrepAnswers] = useState<PrepAnswers | null>(null);
+  // A brief "I'm ready" screen before the live officer; the tap also unlocks iOS audio.
+  const [ready, setReady] = useState(false);
 
   const leave = useCallback(() => navigate("/practice"), [navigate]);
 
@@ -57,11 +55,10 @@ const Interview = () => {
         questions: [],
         records: [],
         liveConversationId: conversationId ?? undefined,
-        prep: prepAnswers ?? undefined,
       });
       navigate("/debrief");
     },
-    [category, navigate, startedAt, prepAnswers],
+    [category, navigate, startedAt],
   );
 
   const handleUnavailable = useCallback((reason: string) => {
@@ -69,28 +66,21 @@ const Interview = () => {
     setMode("sim");
   }, []);
 
-  const onPrepSubmit = useCallback((answers: PrepAnswers, ctx: string | null) => {
+  const onReady = useCallback(() => {
     unlockAudio(); // inside the user gesture, so iOS lets the officer's voice autoplay
-    setPrepAnswers(answers);
-    setPrepContext(ctx);
-    setPrepDone(true);
+    setReady(true);
   }, []);
 
-  const onPrepSkip = useCallback(() => {
-    unlockAudio();
-    setPrepDone(true);
-  }, []);
-
-  const live = prepDone ? (
+  const live = ready ? (
     <LiveAvatarVideoInterview
       category={category}
-      context={prepContext}
+      context={null}
       onComplete={completeLive}
       onLeave={leave}
       onUnavailable={handleUnavailable}
     />
   ) : (
-    <PrepForm onSubmit={onPrepSubmit} onSkip={onPrepSkip} onLeave={leave} />
+    <Briefing onReady={onReady} onLeave={leave} />
   );
 
   return (
@@ -108,9 +98,7 @@ const Interview = () => {
           <div className="flex items-start gap-3">
             <Settings2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground">
-                Live officer unavailable
-              </p>
+              <p className="text-xs font-semibold text-foreground">Live officer unavailable</p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 {fallbackReason}. Running the built-in simulator instead.
               </p>

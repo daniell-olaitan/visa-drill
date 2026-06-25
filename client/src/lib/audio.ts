@@ -1,6 +1,6 @@
 // iOS Safari blocks audio playback until the user interacts with the page. We
 // call this inside a real user gesture (the pre-interview button tap) to "unlock"
-// audio, so the officer's voice can autoplay afterwards — the same approach the
+// audio, so the officer's voice can autoplay afterwards - the same approach the
 // Tavus/Daily "join" tap used. Safe to call multiple times; it no-ops after the
 // first success.
 

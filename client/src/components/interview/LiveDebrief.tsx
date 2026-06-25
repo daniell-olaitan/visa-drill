@@ -75,7 +75,7 @@ const LiveDebrief = ({ conversationId }: LiveDebriefProps) => {
     return (
       <Reveal delay={100}>
         <p className="mx-auto mt-6 max-w-xl text-center leading-relaxed text-muted-foreground">
-          {error} Your interview still happened — try another rep.
+          {error} Your interview still happened - try another rep.
         </p>
       </Reveal>
     );

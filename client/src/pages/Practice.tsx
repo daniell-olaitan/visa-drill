@@ -13,25 +13,25 @@ const options: {
   {
     id: "b1b2",
     label: "Visitor",
-    sub: "B1/B2 — tourism, family, business trips",
+    sub: "B1/B2 - tourism, family, business trips",
     icon: Plane,
   },
   {
     id: "f1",
     label: "Student",
-    sub: "F1 — degree programs and study",
+    sub: "F1 - degree programs and study",
     icon: GraduationCap,
   },
   {
     id: "h1b",
     label: "Work",
-    sub: "H-1B — taking up a job offer",
+    sub: "H-1B - taking up a job offer",
     icon: Briefcase,
   },
   {
     id: "j1",
     label: "Exchange",
-    sub: "J-1 — exchange and training programs",
+    sub: "J-1 - exchange and training programs",
     icon: Repeat,
   },
   {

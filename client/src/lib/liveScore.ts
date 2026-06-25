@@ -121,6 +121,6 @@ export interface Verdict {
 /** A practice "verdict" derived from the readiness score. */
 export const verdictFor = (score: number): Verdict => {
   if (score >= 70) return { label: "You'd likely get through.", tone: "success" };
-  if (score >= 50) return { label: "Borderline — fixable with reps.", tone: "warning" };
+  if (score >= 50) return { label: "Borderline - fixable with reps.", tone: "warning" };
   return { label: "Refused under 214(b) this round.", tone: "destructive" };
 };
