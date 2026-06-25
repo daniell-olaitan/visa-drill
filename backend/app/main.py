@@ -294,6 +294,52 @@ async def join_waitlist(body: WaitlistRequest) -> JSONResponse:
     return JSONResponse(content={"data": {"email": email}, "error": None})
 
 
+async def _list_waitlist_emails() -> list[dict[str, Any]]:
+    """Read all waitlist signups (newest first) from Supabase, else the local file."""
+    supabase_url = os.getenv("SUPABASE_URL")
+    service_key = os.getenv("SUPABASE_SERVICE_KEY")
+    if supabase_url and service_key:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as http:
+                res = await http.get(
+                    f"{supabase_url.rstrip('/')}/rest/v1/waitlist",
+                    params={"select": "email,joined_at", "order": "joined_at.desc"},
+                    headers={"apikey": service_key, "Authorization": f"Bearer {service_key}"},
+                )
+            if res.is_success:
+                return res.json()
+            logger.warning("supabase waitlist list failed: %s %s", res.status_code, res.text[:200])
+        except httpx.HTTPError as err:
+            logger.warning("supabase waitlist list error: %s", err)
+
+    entries: list[dict[str, Any]] = []
+    try:
+        path = Path(os.getenv("WAITLIST_FILE", "waitlist.jsonl"))
+        if path.exists():
+            for line in reversed(path.read_text(encoding="utf-8").splitlines()):
+                if line.strip():
+                    entries.append(json.loads(line))
+    except (OSError, json.JSONDecodeError) as err:
+        logger.warning("waitlist file read failed: %s", err)
+    return entries
+
+
+@app.get("/api/waitlist")
+async def list_waitlist(request: Request) -> JSONResponse:
+    """Admin-only view of waitlist signups.
+
+    Requires the ADMIN_TOKEN env var, sent as the `X-Admin-Token` header. Returns
+    404 when no token is configured, so the endpoint is invisible by default.
+    """
+    admin_token = os.getenv("ADMIN_TOKEN")
+    if not admin_token:
+        raise HTTPException(status_code=404, detail="Not found")
+    if request.headers.get("x-admin-token") != admin_token:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    entries = await _list_waitlist_emails()
+    return JSONResponse(content={"data": entries, "count": len(entries), "error": None})
+
+
 @app.post("/api/webhook")
 async def webhook(request: Request) -> dict[str, bool]:
     """Receive Tavus webhook events (transcript, perception analysis, recording-ready)."""

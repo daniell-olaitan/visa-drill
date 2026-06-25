@@ -4,12 +4,6 @@ import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 
-const navLinks = [
-  { label: "Why it works", href: "/#why" },
-  { label: "The questions", href: "/#questions" },
-  { label: "FAQ", href: "/#faq" },
-];
-
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const { pathname } = useLocation();
@@ -45,18 +39,6 @@ const Header = () => {
             VisaDrill
           </span>
         </Link>
-
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="rounded-full px-3.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              {link.label}
-            </a>
-          ))}
-        </nav>
 
         <div className="flex items-center gap-2">
           <ThemeToggle />

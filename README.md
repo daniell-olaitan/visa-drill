@@ -131,6 +131,7 @@ The officer's opening line is a per-conversation `custom_greeting` read from `SP
 | `PERSONA_*_ID` (×5) | Pre-provisioned persona ids; set all to skip startup provisioning |
 | `ENABLE_RECORDING`, `RECORDING_AZURE_*` / `RECORDING_*` (S3) | Optional recording |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | Optional waitlist store (else a local file); see [Waitlist](#waitlist) |
+| `ADMIN_TOKEN` | Optional; enables the admin signup-list endpoint (`GET /api/waitlist`) |
 | `DEFAULT_LANGUAGE`, `CIVICS_DOCUMENT_URL`, `PUBLIC_BASE_URL` | Optional |
 
 Pre-provision once and pin the ids so cold starts don't recreate resources:
@@ -187,6 +188,12 @@ alter table public.waitlist enable row level security;  -- service key bypasses 
 
 Then set `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` (the **service_role** key, server-side only) in `.env` and your host's env. Export signups any time from the Supabase Table editor.
 
+To read signups via the API, set `ADMIN_TOKEN` and call `GET /api/waitlist` with an `X-Admin-Token: <token>` header (newest first). Without `ADMIN_TOKEN`, that endpoint returns 404.
+
+```sh
+curl -s https://<host>/api/waitlist -H "X-Admin-Token: $ADMIN_TOKEN"
+```
+
 ## API
 
 | Method | Path | Purpose |
@@ -197,6 +204,7 @@ Then set `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` (the **service_role** key, se
 | POST | `/api/start-session` | `{visa_type, language?, applicant_id?, conversational_context?}` -> `{conversation_url, conversation_id}` |
 | POST | `/api/end-session` | `{conversation_id}` -> ends the conversation |
 | POST | `/api/waitlist` | `{email}` -> `{data, error}`; stores to Supabase or a local file |
+| GET | `/api/waitlist` | Admin-only signup list; needs `ADMIN_TOKEN` + `X-Admin-Token` header |
 | GET | `/api/report/{conversation_id}` | Transcript + demeanor analysis + recording url |
 | POST | `/api/webhook` | Receives Tavus events (transcript, perception, recording-ready) |
 

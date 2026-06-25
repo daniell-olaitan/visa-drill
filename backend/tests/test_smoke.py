@@ -56,6 +56,28 @@ def test_waitlist_invalid_email(client: TestClient) -> None:
     assert res.json()["error"]["code"] == "INVALID_EMAIL"
 
 
+def test_waitlist_admin_list(
+    client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("WAITLIST_FILE", str(tmp_path / "waitlist.jsonl"))
+    monkeypatch.setenv("ADMIN_TOKEN", "secret")
+    client.post("/api/waitlist", json={"email": "a@b.com"})
+
+    assert client.get("/api/waitlist").status_code == 401  # no/wrong token
+    res = client.get("/api/waitlist", headers={"X-Admin-Token": "secret"})
+    assert res.status_code == 200
+    body = res.json()
+    assert body["count"] == 1
+    assert body["data"][0]["email"] == "a@b.com"
+
+
+def test_waitlist_admin_disabled_without_token(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("ADMIN_TOKEN", raising=False)
+    assert client.get("/api/waitlist").status_code == 404
+
+
 def test_start_session_valid(client: TestClient, fake_client: FakeTavusClient) -> None:
     res = client.post("/api/start-session", json={"visa_type": "b1b2"})
     assert res.status_code == 200
