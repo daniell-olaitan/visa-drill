@@ -74,7 +74,7 @@ Three Tavus models are in play: **Phoenix-4** renders the replica, **Raven-1** i
 | Backend (`backend/`) | Python 3.11+ + FastAPI + httpx + Pydantic |
 | Avatar | Tavus CVI: a dedicated Persona + stock Replica per category |
 
-The landing also ships a light/dark theme toggle and an email waitlist form that posts to `/api/waitlist`. That endpoint is not implemented in the backend yet, so wire it up (or point the form elsewhere) to capture signups.
+The landing also ships a light/dark theme toggle and an email waitlist form. Signups POST to `/api/waitlist`, which saves them to a Supabase `waitlist` table when configured and falls back to a local file otherwise (see [Waitlist](#waitlist)).
 
 ## Architecture
 
@@ -130,6 +130,7 @@ The officer's opening line is a per-conversation `custom_greeting` read from `SP
 | `INTERVIEW_DURATION_SECONDS` | Visible interview length / auto-end (default 240) |
 | `PERSONA_*_ID` (×5) | Pre-provisioned persona ids; set all to skip startup provisioning |
 | `ENABLE_RECORDING`, `RECORDING_AZURE_*` / `RECORDING_*` (S3) | Optional recording |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | Optional waitlist store (else a local file); see [Waitlist](#waitlist) |
 | `DEFAULT_LANGUAGE`, `CIVICS_DOCUMENT_URL`, `PUBLIC_BASE_URL` | Optional |
 
 Pre-provision once and pin the ids so cold starts don't recreate resources:
@@ -169,6 +170,23 @@ Tavus copies recordings into **your own** cloud via federated identity, either *
 
 Recording only happens on a real interview. To see the recording link in the debrief, set `PUBLIC_BASE_URL` so Tavus can POST the `recording_ready` webhook.
 
+## Waitlist
+
+The landing form posts `{email}` to `POST /api/waitlist`. With `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` set, signups are inserted into a Supabase `waitlist` table (durable and exportable, dedupes on a unique email); without them they append to a local JSONL file (`WAITLIST_FILE`, default `waitlist.jsonl`), which is fine for dev but ephemeral on hosts without a persistent disk.
+
+To use Supabase, create a free project and run this once in its SQL editor:
+
+```sql
+create table if not exists public.waitlist (
+  id         uuid primary key default gen_random_uuid(),
+  email      text not null unique,
+  joined_at  timestamptz not null default now()
+);
+alter table public.waitlist enable row level security;  -- service key bypasses RLS; anon cannot read
+```
+
+Then set `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` (the **service_role** key, server-side only) in `.env` and your host's env. Export signups any time from the Supabase Table editor.
+
 ## API
 
 | Method | Path | Purpose |
@@ -178,6 +196,7 @@ Recording only happens on a real interview. To see the recording link in the deb
 | POST | `/api/liveavatar/embed` | `{category, applicant_context?}` -> `{url, conversation_id, max_seconds, recording}` |
 | POST | `/api/start-session` | `{visa_type, language?, applicant_id?, conversational_context?}` -> `{conversation_url, conversation_id}` |
 | POST | `/api/end-session` | `{conversation_id}` -> ends the conversation |
+| POST | `/api/waitlist` | `{email}` -> `{data, error}`; stores to Supabase or a local file |
 | GET | `/api/report/{conversation_id}` | Transcript + demeanor analysis + recording url |
 | POST | `/api/webhook` | Receives Tavus events (transcript, perception, recording-ready) |
 

@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -229,15 +230,52 @@ async def end_session(body: EndSessionRequest) -> dict[str, bool]:
     return {"ended": True}
 
 
+async def _store_waitlist_email(email: str) -> bool:
+    """Persist a waitlist email.
+
+    Prefers a Supabase `waitlist` table when SUPABASE_URL + SUPABASE_SERVICE_KEY
+    are set (durable, dedupes on the unique email column), and falls back to a
+    local JSONL file otherwise (handy for dev; ephemeral on hosts without a
+    persistent disk). Returns True if the email was stored somewhere.
+    """
+    supabase_url = os.getenv("SUPABASE_URL")
+    service_key = os.getenv("SUPABASE_SERVICE_KEY")
+    if supabase_url and service_key:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as http:
+                res = await http.post(
+                    f"{supabase_url.rstrip('/')}/rest/v1/waitlist",
+                    headers={
+                        "apikey": service_key,
+                        "Authorization": f"Bearer {service_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={"email": email},
+                )
+            # 2xx = inserted; 409 = the email is already on the list. Both are fine.
+            if res.is_success or res.status_code == 409:
+                return True
+            logger.warning("supabase waitlist insert failed: %s %s", res.status_code, res.text[:200])
+        except httpx.HTTPError as err:
+            logger.warning("supabase waitlist insert error: %s", err)
+
+    record = {"email": email, "joined_at": datetime.now(timezone.utc).isoformat()}
+    try:
+        path = Path(os.getenv("WAITLIST_FILE", "waitlist.jsonl"))
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record) + "\n")
+        return True
+    except OSError as err:
+        logger.warning("waitlist file append failed: %s", err)
+        return False
+
+
 @app.post("/api/waitlist")
 async def join_waitlist(body: WaitlistRequest) -> JSONResponse:
     """Capture a waitlist signup from the landing form.
 
-    Appends to a JSONL file (best-effort) and logs it. The file is the simplest
-    store, but it is ephemeral on hosts with a non-persistent disk (e.g. Render's
-    free tier); point WAITLIST_FILE at a persistent volume, or swap this for a
-    database, before relying on it. The response shape matches the client form:
-    {data, error}.
+    Stores to Supabase when configured, else a local file. Returns the
+    {data, error} shape the client form expects.
     """
     email = body.email.strip().lower()
     domain = email.rsplit("@", 1)[-1] if "@" in email else ""
@@ -247,14 +285,11 @@ async def join_waitlist(body: WaitlistRequest) -> JSONResponse:
             content={"data": None, "error": {"code": "INVALID_EMAIL", "message": "Enter a valid email address."}},
         )
 
-    record = {"email": email, "joined_at": datetime.now(timezone.utc).isoformat()}
-    try:
-        path = Path(os.getenv("WAITLIST_FILE", "waitlist.jsonl"))
-        with path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(record) + "\n")
-    except OSError as err:  # storage is best-effort; never fail the signup on it
-        logger.warning("waitlist append failed: %s", err)
-
+    if not await _store_waitlist_email(email):
+        return JSONResponse(
+            status_code=500,
+            content={"data": None, "error": {"code": "STORE_FAILED", "message": "Could not save your signup. Please try again."}},
+        )
     logger.info("waitlist signup: %s", email)
     return JSONResponse(content={"data": {"email": email}, "error": None})
 
