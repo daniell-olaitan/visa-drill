@@ -52,6 +52,12 @@ class EndSessionRequest(BaseModel):
     conversation_id: str
 
 
+class WaitlistRequest(BaseModel):
+    """Body for POST /api/waitlist."""
+
+    email: str
+
+
 class HealthResponse(BaseModel):
     """Startup/health summary."""
 

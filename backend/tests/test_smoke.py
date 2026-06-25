@@ -38,6 +38,24 @@ def test_list_replicas(client: TestClient) -> None:
     assert res.json() == [{"replica_id": "r_test", "replica_name": "Test Officer"}]
 
 
+def test_waitlist_valid(
+    client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("WAITLIST_FILE", str(tmp_path / "waitlist.jsonl"))
+    res = client.post("/api/waitlist", json={"email": "Me@Example.com"})
+    assert res.status_code == 200
+    body = res.json()
+    assert body["error"] is None
+    assert body["data"]["email"] == "me@example.com"  # normalised
+    assert (tmp_path / "waitlist.jsonl").exists()
+
+
+def test_waitlist_invalid_email(client: TestClient) -> None:
+    res = client.post("/api/waitlist", json={"email": "not-an-email"})
+    assert res.status_code == 400
+    assert res.json()["error"]["code"] == "INVALID_EMAIL"
+
+
 def test_start_session_valid(client: TestClient, fake_client: FakeTavusClient) -> None:
     res = client.post("/api/start-session", json={"visa_type": "b1b2"})
     assert res.status_code == 200
@@ -262,7 +280,7 @@ def test_load_settings_missing_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         config.Settings,
         "model_config",
-        {**config.Settings.model_config, "env_file": "/nonexistent/face-drill/.env"},
+        {**config.Settings.model_config, "env_file": "/nonexistent/visa-drill/.env"},
     )
     with pytest.raises(RuntimeError, match="TAVUS_API_KEY is not set"):
         load_settings()

@@ -8,7 +8,7 @@ from typing import Any
 from pydantic import ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# backend/app/config.py -> parents[2] is the face-drill repo root, where .env lives.
+# backend/app/config.py -> parents[2] is the visa-drill repo root, where .env lives.
 REPO_ROOT: Path = Path(__file__).resolve().parents[2]
 
 

@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Provision an S3 bucket + IAM role that Tavus can assume to store FaceDrill recordings.
+# Provision an S3 bucket + IAM role that Tavus can assume to store VisaDrill recordings.
 # Requires the AWS CLI configured with credentials that can create S3 buckets and IAM roles.
 #
 # Usage:
-#   BUCKET=my-facedrill-recordings REGION=us-east-1 ./infra/aws/setup-recording.sh
+#   BUCKET=my-visadrill-recordings REGION=us-east-1 ./infra/aws/setup-recording.sh
 #
-# Then paste the printed lines into face-drill/.env.
+# Then paste the printed lines into visa-drill/.env.
 set -euo pipefail
 
 : "${BUCKET:?set BUCKET=<globally-unique-bucket-name>}"
 REGION="${REGION:-us-east-1}"
-ROLE_NAME="${ROLE_NAME:-facedrill-tavus-recording}"
+ROLE_NAME="${ROLE_NAME:-visadrill-tavus-recording}"
 
 # Tavus assumes this role from its own AWS account using a fixed external id.
 TAVUS_ACCOUNT_ID="291871421005"
@@ -67,13 +67,13 @@ JSON
 
 echo "==> Attaching bucket write policy"
 aws iam put-role-policy --role-name "$ROLE_NAME" \
-  --policy-name facedrill-s3-write --policy-document "$PERMS"
+  --policy-name visadrill-s3-write --policy-document "$PERMS"
 
 ROLE_ARN=$(aws iam get-role --role-name "$ROLE_NAME" --query 'Role.Arn' --output text)
 
 cat <<EOF
 
-Done. Add these to face-drill/.env, then restart the backend:
+Done. Add these to visa-drill/.env, then restart the backend:
 
 ENABLE_RECORDING=true
 RECORDING_PROVIDER=s3

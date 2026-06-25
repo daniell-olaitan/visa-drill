@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Provision Azure Blob storage + an Entra app that Tavus can federate into to store
-# FaceDrill recordings. Requires the Azure CLI logged in (`az login`).
+# VisaDrill recordings. Requires the Azure CLI logged in (`az login`).
 #
 # Tavus authenticates via Entra workload-identity federation:
 #   issuer   = https://recording-copy.tavus.io
@@ -8,10 +8,10 @@
 #   audience = api://AzureADTokenExchange
 #
 # Usage:
-#   STORAGE_ACCOUNT=facedrillrec RESOURCE_GROUP=facedrill-rg \
+#   STORAGE_ACCOUNT=visadrillrec RESOURCE_GROUP=visadrill-rg \
 #   WORKSPACE_ID=<your-tavus-workspace-id> ./infra/azure/setup-recording.sh
 #
-# Then paste the printed lines into face-drill/.env.
+# Then paste the printed lines into visa-drill/.env.
 set -euo pipefail
 
 : "${STORAGE_ACCOUNT:?set STORAGE_ACCOUNT (3-24 lowercase letters/numbers, globally unique)}"
@@ -59,7 +59,7 @@ az role assignment create --assignee "$APP_ID" \
 
 cat <<EOF
 
-Done. Add these to face-drill/.env, then restart the backend:
+Done. Add these to visa-drill/.env, then restart the backend:
 
 ENABLE_RECORDING=true
 RECORDING_PROVIDER=azure_blob

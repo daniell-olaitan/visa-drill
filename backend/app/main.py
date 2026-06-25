@@ -8,16 +8,18 @@ endpoints. See TAVUS_GUIDE.md for the underlying API.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import Settings, load_settings
@@ -31,6 +33,7 @@ from .models import (
     StartSessionResponse,
     StockReplica,
     TranscriptTurn,
+    WaitlistRequest,
 )
 from .personas import SPECS, VISA_TYPES, PersonaMap, VisaType
 from .provisioning import provision
@@ -224,6 +227,36 @@ async def end_session(body: EndSessionRequest) -> dict[str, bool]:
         # Ending an already-ended conversation is not worth surfacing to the user.
         logger.warning("end-session non-fatal error: %s", err)
     return {"ended": True}
+
+
+@app.post("/api/waitlist")
+async def join_waitlist(body: WaitlistRequest) -> JSONResponse:
+    """Capture a waitlist signup from the landing form.
+
+    Appends to a JSONL file (best-effort) and logs it. The file is the simplest
+    store, but it is ephemeral on hosts with a non-persistent disk (e.g. Render's
+    free tier); point WAITLIST_FILE at a persistent volume, or swap this for a
+    database, before relying on it. The response shape matches the client form:
+    {data, error}.
+    """
+    email = body.email.strip().lower()
+    domain = email.rsplit("@", 1)[-1] if "@" in email else ""
+    if "@" not in email or "." not in domain:
+        return JSONResponse(
+            status_code=400,
+            content={"data": None, "error": {"code": "INVALID_EMAIL", "message": "Enter a valid email address."}},
+        )
+
+    record = {"email": email, "joined_at": datetime.now(timezone.utc).isoformat()}
+    try:
+        path = Path(os.getenv("WAITLIST_FILE", "waitlist.jsonl"))
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record) + "\n")
+    except OSError as err:  # storage is best-effort; never fail the signup on it
+        logger.warning("waitlist append failed: %s", err)
+
+    logger.info("waitlist signup: %s", email)
+    return JSONResponse(content={"data": {"email": email}, "error": None})
 
 
 @app.post("/api/webhook")

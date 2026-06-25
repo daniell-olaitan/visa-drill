@@ -2,7 +2,7 @@
 # Secrets (sync: false) are set in the Render dashboard, not committed.
 services:
   - type: web
-    name: face-drill
+    name: visa-drill
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile
