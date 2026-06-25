@@ -1,4 +1,4 @@
-"""Shared fixtures: a fake Tavus client so tests need no API key or network."""
+"""Shared fixtures: a fake the provider client so tests need no API key or network."""
 
 from __future__ import annotations
 
@@ -9,19 +9,19 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.tavus import TavusApiError
+from app.avatar import AvatarApiError
 
 
 class FakeResponse:
-    """Minimal stand-in for httpx.Response used by `TavusClient.request`."""
+    """Minimal stand-in for httpx.Response used by `AvatarClient.request`."""
 
     def __init__(self, status_code: int, text: str = "") -> None:
         self.status_code = status_code
         self.text = text
 
 
-class FakeTavusClient:
-    """Records calls and returns canned payloads instead of hitting Tavus."""
+class FakeAvatarClient:
+    """Records calls and returns canned payloads instead of hitting the provider."""
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, str, dict[str, Any] | None]] = []
@@ -56,10 +56,10 @@ class FakeTavusClient:
     ) -> dict[str, Any]:
         self.calls.append((method, path, json))
         if path in self.fail_paths:
-            raise TavusApiError(502, path, "simulated failure")
+            raise AvatarApiError(502, path, "simulated failure")
         if path == "/conversations" and method == "POST":
             return {
-                "conversation_url": "https://tavus.daily.co/c123",
+                "conversation_url": "https://rooms.example.com/c123",
                 "conversation_id": "c123",
                 "status": "active",
             }
@@ -103,17 +103,17 @@ class FakeTavusClient:
 
 
 @pytest.fixture
-def fake_client() -> FakeTavusClient:
-    return FakeTavusClient()
+def fake_client() -> FakeAvatarClient:
+    return FakeAvatarClient()
 
 
 @pytest.fixture
-def client(fake_client: FakeTavusClient) -> TestClient:
+def client(fake_client: FakeAvatarClient) -> TestClient:
     """A TestClient with app.state populated manually (lifespan is bypassed)."""
     app.state.settings = SimpleNamespace(
-        tavus_api_key="sk-test",
-        tavus_replica_id="r_test",
-        tavus_llm_model="tavus-gpt-oss",
+        avatar_api_key="sk-test",
+        avatar_replica_id="r_test",
+        avatar_llm_model="tavus-gpt-oss",
         cors_origin="http://localhost:5173",
         port=8787,
         interview_duration_seconds=240,

@@ -10,11 +10,11 @@ from __future__ import annotations
 import logging
 
 from . import cache
-from .tavus import TavusClient
+from .avatar import AvatarClient
 
 logger = logging.getLogger(__name__)
 
-# (text, pronunciation, type). "alias" substitutes spoken text; see TAVUS_GUIDE.md.
+# (text, pronunciation, type). "alias" substitutes spoken text.
 RULES: list[dict[str, str]] = [
     {"text": "USCIS", "pronunciation": "U S C I S", "type": "alias"},
     {"text": "N-400", "pronunciation": "N four hundred", "type": "alias"},
@@ -25,11 +25,11 @@ RULES: list[dict[str, str]] = [
 ]
 
 
-async def ensure_pronunciation_dictionary(client: TavusClient) -> str:
+async def ensure_pronunciation_dictionary(client: AvatarClient) -> str:
     """Create or reuse the pronunciation dictionary and return its id."""
     want_hash = cache.hash_spec({"name": "visadrill-terms", "rules": RULES})
 
-    async def create(_client: TavusClient, _key: str) -> str:
+    async def create(_client: AvatarClient, _key: str) -> str:
         created = await _client.request_json(
             "POST",
             "/pronunciation-dictionaries",

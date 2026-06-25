@@ -1,6 +1,6 @@
 """Objective sets that drive a goal-oriented flow and extract structured data (feature #2).
 
-Each visa type gets an objective set. Tavus runs an evaluator that verifies each
+Each visa type gets an objective set. the provider runs an evaluator that verifies each
 objective and collects `output_variables`, which is what lets us score an interview
 (per-section completion, civics answers) instead of just transcribing it.
 """
@@ -12,7 +12,7 @@ from typing import Any
 
 from . import cache
 from .personas import VISA_TYPES, VisaType
-from .tavus import TavusClient
+from .avatar import AvatarClient
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +115,7 @@ OBJECTIVES: dict[VisaType, list[dict[str, Any]]] = {
 def link_chain(objectives: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Link objectives into a single linear chain.
 
-    Tavus requires exactly one root objective (one not referenced by any other),
+    the provider requires exactly one root objective (one not referenced by any other),
     so each objective points to the next via `next_required_objective`; the last
     has none. Returns new dicts, leaving the source SPECS untouched.
     """
@@ -128,14 +128,14 @@ def link_chain(objectives: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return linked
 
 
-async def ensure_objectives(client: TavusClient) -> dict[VisaType, str]:
+async def ensure_objectives(client: AvatarClient) -> dict[VisaType, str]:
     """Create or reuse one objective set per visa type and return their ids."""
     result: dict[VisaType, str] = {}
     for visa in VISA_TYPES:
         objectives = link_chain(OBJECTIVES[visa])
         want_hash = cache.hash_spec(objectives)
 
-        async def create(_client: TavusClient, _key: str, *, _objs: list[dict[str, Any]] = objectives) -> str:
+        async def create(_client: AvatarClient, _key: str, *, _objs: list[dict[str, Any]] = objectives) -> str:
             created = await _client.request_json("POST", "/objectives", json={"data": _objs})
             return cache.extract_id(created, "objectives_id", "id")
 

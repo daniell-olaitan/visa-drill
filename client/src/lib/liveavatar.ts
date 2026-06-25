@@ -2,13 +2,13 @@ import type { VisaCategory } from "@/lib/questionBank";
 
 export interface LiveAvatarEmbed {
   url: string;
-  /** Tavus conversation id, used afterwards to fetch the debrief report. */
+  /** the provider conversation id, used afterwards to fetch the debrief report. */
   conversationId?: string;
   /** Visible interview length in seconds for the countdown timer. */
   maxSeconds?: number;
 }
 
-// Served by the FastAPI backend, which creates a Tavus conversation and returns
+// Served by the FastAPI backend, which creates a provider conversation and returns
 // its conversation_url as { url }. Same-origin in production (FastAPI serves the
 // SPA); in dev the Vite server proxies /api to the backend.
 const EMBED_ENDPOINT =

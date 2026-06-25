@@ -20,7 +20,7 @@ class StartSessionRequest(BaseModel):
 
 
 class StartSessionResponse(BaseModel):
-    """Tavus conversation details the frontend needs to join the Daily room."""
+    """the provider conversation details the frontend needs to join the room."""
 
     conversation_url: str
     conversation_id: str
@@ -79,7 +79,7 @@ class TranscriptTurn(BaseModel):
 
 
 class ReportResponse(BaseModel):
-    """Post-interview report assembled from Tavus events (features #1, #2)."""
+    """Post-interview report assembled from the provider events (features #1, #2)."""
 
     conversation_id: str
     status: str

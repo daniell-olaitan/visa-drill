@@ -1,7 +1,7 @@
-"""Provision the Tavus resources once and print the persona ids to pin via env.
+"""Provision the provider resources once and print the persona ids to pin via env.
 
-Run this locally after setting TAVUS_API_KEY. Paste the
-printed PERSONA_*_ID lines into your host's env (e.g. Render dashboard) so deployed
+Run this locally after setting AVATAR_API_KEY. Paste the
+printed PERSONA_*_ID lines into your host's env (e.g. the host dashboard) so deployed
 instances reuse these personas instead of re-creating resources on every cold start.
 
     python backend/scripts/provision.py
@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.config import load_settings  # noqa: E402
 from app.provisioning import provision  # noqa: E402
-from app.tavus import TavusClient  # noqa: E402
+from app.avatar import AvatarClient  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("provision")
@@ -36,7 +36,7 @@ ENV_KEYS = {
 
 async def run() -> int:
     settings = load_settings()
-    client = TavusClient(settings.tavus_api_key)
+    client = AvatarClient(settings.avatar_api_key)
     try:
         personas = await provision(client, settings)
     finally:

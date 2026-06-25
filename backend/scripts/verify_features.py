@@ -1,15 +1,15 @@
-"""Probe a Tavus account/key to see which VisaDrill features it supports.
+"""Probe a provider account/key to see which VisaDrill features it supports.
 
 Creates a throwaway instance of each resource (guardrail, objective, document,
 pronunciation dictionary, persona) and an optional `test_mode` conversation, reports
 which succeed, then cleans them up. `test_mode` conversations do not bill minutes,
 so this is safe to run on the free plan.
 
-Run once `.env` has TAVUS_API_KEY (path is independent of the working directory):
+Run once `.env` has AVATAR_API_KEY (path is independent of the working directory):
 
-    python backend/scripts/verify_tavus.py
-    python backend/scripts/verify_tavus.py --skip-conversation   # skip conversation probes
-    python backend/scripts/verify_tavus.py --keep                # leave created resources
+    python backend/scripts/verify_features.py
+    python backend/scripts/verify_features.py --skip-conversation   # skip conversation probes
+    python backend/scripts/verify_features.py --keep                # leave created resources
 """
 
 from __future__ import annotations
@@ -28,24 +28,24 @@ from app.guardrails import GUARDRAILS  # noqa: E402
 from app.objectives import OBJECTIVES, link_chain  # noqa: E402
 from app.personas import SPECS, PersonaDeps, build_persona_payload  # noqa: E402
 from app.pronunciation import RULES  # noqa: E402
-from app.tavus import TavusClient  # noqa: E402
+from app.avatar import AvatarClient  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("verify")
 
 
 class ProbeError(Exception):
-    """A Tavus call returned a non-2xx response during probing."""
+    """A the provider call returned a non-2xx response during probing."""
 
 
-async def _create(client: TavusClient, path: str, payload: dict, *id_fields: str) -> str:
+async def _create(client: AvatarClient, path: str, payload: dict, *id_fields: str) -> str:
     response = await client.request("POST", path, json=payload)
     if not response.is_success:
         raise ProbeError(f"{response.status_code}: {response.text[:200]}")
     return cache.extract_id(response.json(), *id_fields)
 
 
-async def _delete(client: TavusClient, path: str, *, keep: bool) -> None:
+async def _delete(client: AvatarClient, path: str, *, keep: bool) -> None:
     if keep:
         return
     try:
@@ -55,7 +55,7 @@ async def _delete(client: TavusClient, path: str, *, keep: bool) -> None:
 
 
 def _report(results: list[tuple[str, bool, str]]) -> None:
-    logger.info("\n=== VisaDrill / Tavus feature support ===")
+    logger.info("\n=== VisaDrill / the provider feature support ===")
     width = max(len(name) for name, _, _ in results)
     for name, ok, detail in results:
         mark = "OK  " if ok else "FAIL"
@@ -66,7 +66,7 @@ def _report(results: list[tuple[str, bool, str]]) -> None:
 
 async def run(args: argparse.Namespace) -> int:
     settings = load_settings()
-    client = TavusClient(settings.tavus_api_key)
+    client = AvatarClient(settings.avatar_api_key)
     results: list[tuple[str, bool, str]] = []
     created: list[tuple[str, str]] = []  # (delete_path, label) for cleanup
 
@@ -74,7 +74,7 @@ async def run(args: argparse.Namespace) -> int:
         # --- API key ---
         key_check = await client.request("GET", "/personas", params={"limit": 1})
         if key_check.status_code == 401:
-            logger.error("API key invalid (401). Set a valid TAVUS_API_KEY in .env.")
+            logger.error("API key invalid (401). Set a valid AVATAR_API_KEY in .env.")
             return 1
         if not key_check.is_success:
             logger.error("Key check failed: %s %s", key_check.status_code, key_check.text[:200])
@@ -85,11 +85,11 @@ async def run(args: argparse.Namespace) -> int:
         try:
             data = await client.request("GET", "/replicas", params={"replica_type": "system", "limit": 100})
             ids = {r.get("replica_id") for r in (data.json().get("data", []) if data.is_success else [])}
-            present = settings.tavus_replica_id in ids
+            present = settings.avatar_replica_id in ids
             results.append((
                 "Stock replica",
                 present,
-                f"{settings.tavus_replica_id} {'found' if present else 'NOT in stock list - check TAVUS_REPLICA_ID'}",
+                f"{settings.avatar_replica_id} {'found' if present else 'NOT in stock list - check AVATAR_REPLICA_ID'}",
             ))
         except Exception as err:  # noqa: BLE001
             results.append(("Stock replica", False, str(err)))
@@ -169,14 +169,14 @@ async def run(args: argparse.Namespace) -> int:
             document_ids=[document_id] if document_id else [],
             pronunciation_dictionary_id=pronunciation_id,
         )
-        payload = build_persona_payload(SPECS["n400"], settings.tavus_replica_id, settings.tavus_llm_model, deps)
+        payload = build_persona_payload(SPECS["n400"], settings.avatar_replica_id, settings.avatar_llm_model, deps)
         try:
             persona_id = await _create(client, "/personas", payload, "persona_id", "id")
             created.append((f"/personas/{persona_id}", "persona"))
-            results.append(("#1 Perception (Raven)", True, f"persona {persona_id} accepted raven-1 layer"))
+            results.append(("#1 Perception (the perception model)", True, f"persona {persona_id} accepted the perception layer"))
             results.append(("#6 Flow + STT hotwords", True, "accepted in persona layers"))
         except (ProbeError, RuntimeError) as err:
-            results.append(("#1 Perception (Raven)", False, str(err)))
+            results.append(("#1 Perception (the perception model)", False, str(err)))
             results.append(("#6 Flow + STT hotwords", False, "persona create failed"))
 
         # --- Conversation-level: #8 Language, #7 Memories (test_mode) ---
@@ -199,7 +199,7 @@ async def run(args: argparse.Namespace) -> int:
                     "/conversations",
                     json={
                         "persona_id": persona_id,
-                        "replica_id": settings.tavus_replica_id,
+                        "replica_id": settings.avatar_replica_id,
                         "test_mode": True,
                         "memory_stores": ["verify-probe"],
                         "properties": base_props,
@@ -234,7 +234,7 @@ async def run(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Probe Tavus feature support for VisaDrill.")
+    parser = argparse.ArgumentParser(description="Probe the provider feature support for VisaDrill.")
     parser.add_argument("--skip-conversation", action="store_true", help="Skip test_mode conversation probes.")
     parser.add_argument("--keep", action="store_true", help="Do not delete created resources.")
     args = parser.parse_args()

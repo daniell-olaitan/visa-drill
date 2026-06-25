@@ -1,6 +1,6 @@
-"""Generic create-or-reuse cache for Tavus resources, keyed by a content hash.
+"""Generic create-or-reuse cache for the provider resources, keyed by a content hash.
 
-Every provisioned Tavus resource (persona, objective set, guardrail, document,
+Every provisioned the provider resource (persona, objective set, guardrail, document,
 pronunciation dictionary) follows the same lifecycle: hash its spec, reuse the
 cached id when the hash is unchanged (and the resource still exists), otherwise
 create a fresh one. This module centralizes that so each resource module only
@@ -18,7 +18,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from .tavus import TavusClient
+from .avatar import AvatarClient
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ def extract_id(payload: dict[str, Any], *candidates: str) -> str:
         value = payload.get(key)
         if isinstance(value, str) and value:
             return value
-    raise RuntimeError(f"no id field {candidates} in Tavus response: {payload}")
+    raise RuntimeError(f"no id field {candidates} in the provider response: {payload}")
 
 
 def _read(path: Path) -> dict[str, ResourceRecord]:
@@ -76,12 +76,12 @@ def _write(path: Path, records: dict[str, ResourceRecord]) -> None:
     tmp.replace(path)
 
 
-ExistsFn = Callable[[TavusClient, str], Awaitable[bool]]
-CreateFn = Callable[[TavusClient, str], Awaitable[str]]
+ExistsFn = Callable[[AvatarClient, str], Awaitable[bool]]
+CreateFn = Callable[[AvatarClient, str], Awaitable[str]]
 
 
 async def ensure_resource(
-    client: TavusClient,
+    client: AvatarClient,
     *,
     family: str,
     key: str,

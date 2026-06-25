@@ -9,14 +9,14 @@ services:
     dockerContext: .
     healthCheckPath: /api/health
     envVars:
-      - key: TAVUS_API_KEY
+      - key: AVATAR_API_KEY
         sync: false
       # Interview length in seconds (set in the dashboard; lower to conserve
       # free-tier minutes). Falls back to the code default (240) if unset.
       - key: INTERVIEW_DURATION_SECONDS
         sync: false
       # Optional: pin a stock replica / language.
-      - key: TAVUS_REPLICA_ID
+      - key: AVATAR_REPLICA_ID
         sync: false
       # Pre-provisioned persona ids (run scripts/provision.py once, then paste here).
       # When all three are set, cold starts skip provisioning and never duplicate resources.
@@ -33,9 +33,9 @@ services:
       # Waitlist (optional). With these the backend saves /api/waitlist signups to
       # a Supabase table; without them they fall back to a local file. Use the
       # service_role key (server-side only). See the README "Waitlist" section.
-      - key: SUPABASE_URL
+      - key: DB_URL
         sync: false
-      - key: SUPABASE_SERVICE_KEY
+      - key: DB_SERVICE_KEY
         sync: false
       # Enables the admin signup-list endpoint (GET /api/waitlist).
       - key: ADMIN_TOKEN

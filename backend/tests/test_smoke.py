@@ -1,4 +1,4 @@
-"""Smoke tests for the VisaDrill backend: routes (mocked Tavus) and persona logic."""
+"""Smoke tests for the VisaDrill backend: routes (mocked the provider) and persona logic."""
 
 from __future__ import annotations
 
@@ -19,8 +19,8 @@ from app.personas import (
     build_persona_payload,
     ensure_personas,
 )
-from app.tavus import TavusClient
-from tests.conftest import FakeTavusClient
+from app.avatar import AvatarClient
+from tests.conftest import FakeAvatarClient
 
 
 def test_health(client: TestClient) -> None:
@@ -41,8 +41,8 @@ def test_list_replicas(client: TestClient) -> None:
 def test_waitlist_valid(
     client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.delenv("SUPABASE_URL", raising=False)  # force the local-file path
-    monkeypatch.delenv("SUPABASE_SERVICE_KEY", raising=False)
+    monkeypatch.delenv("DB_URL", raising=False)  # force the local-file path
+    monkeypatch.delenv("DB_SERVICE_KEY", raising=False)
     monkeypatch.setenv("WAITLIST_FILE", str(tmp_path / "waitlist.jsonl"))
     res = client.post("/api/waitlist", json={"email": "Me@Example.com"})
     assert res.status_code == 200
@@ -61,8 +61,8 @@ def test_waitlist_invalid_email(client: TestClient) -> None:
 def test_waitlist_admin_list(
     client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.delenv("SUPABASE_URL", raising=False)  # force the local-file path
-    monkeypatch.delenv("SUPABASE_SERVICE_KEY", raising=False)
+    monkeypatch.delenv("DB_URL", raising=False)  # force the local-file path
+    monkeypatch.delenv("DB_SERVICE_KEY", raising=False)
     monkeypatch.setenv("WAITLIST_FILE", str(tmp_path / "waitlist.jsonl"))
     monkeypatch.setenv("ADMIN_TOKEN", "secret")
     client.post("/api/waitlist", json={"email": "a@b.com"})
@@ -82,11 +82,11 @@ def test_waitlist_admin_disabled_without_token(
     assert client.get("/api/waitlist").status_code == 404
 
 
-def test_start_session_valid(client: TestClient, fake_client: FakeTavusClient) -> None:
+def test_start_session_valid(client: TestClient, fake_client: FakeAvatarClient) -> None:
     res = client.post("/api/start-session", json={"visa_type": "b1b2"})
     assert res.status_code == 200
     assert res.json() == {
-        "conversation_url": "https://tavus.daily.co/c123",
+        "conversation_url": "https://rooms.example.com/c123",
         "conversation_id": "c123",
     }
     post = next(c for c in fake_client.calls if c[0] == "POST" and c[1] == "/conversations")
@@ -102,7 +102,7 @@ def test_start_session_valid(client: TestClient, fake_client: FakeTavusClient) -
 
 
 def test_start_session_with_applicant_and_language(
-    client: TestClient, fake_client: FakeTavusClient
+    client: TestClient, fake_client: FakeAvatarClient
 ) -> None:
     res = client.post(
         "/api/start-session",
@@ -116,11 +116,11 @@ def test_start_session_with_applicant_and_language(
     assert payload["memory_stores"] == ["user-42-f1"]
 
 
-def test_embed_maps_category_to_persona(client: TestClient, fake_client: FakeTavusClient) -> None:
+def test_embed_maps_category_to_persona(client: TestClient, fake_client: FakeAvatarClient) -> None:
     res = client.post("/api/liveavatar/embed", json={"category": "h1b"})
     assert res.status_code == 200
     body = res.json()
-    assert body["url"] == "https://tavus.daily.co/c123"
+    assert body["url"] == "https://rooms.example.com/c123"
     assert body["conversation_id"] == "c123"
     # h1b now has its own dedicated officer persona.
     post = next(c for c in fake_client.calls if c[0] == "POST" and c[1] == "/conversations")
@@ -128,7 +128,7 @@ def test_embed_maps_category_to_persona(client: TestClient, fake_client: FakeTav
     assert post[2]["persona_id"] == "p_h1b"
 
 
-def test_embed_includes_applicant_context(client: TestClient, fake_client: FakeTavusClient) -> None:
+def test_embed_includes_applicant_context(client: TestClient, fake_client: FakeAvatarClient) -> None:
     res = client.post(
         "/api/liveavatar/embed",
         json={"category": "b1b2", "applicant_context": "Purpose of trip: visiting family."},
@@ -144,20 +144,20 @@ def test_start_session_invalid_visa(client: TestClient) -> None:
     assert res.status_code == 422  # rejected by the Literal schema
 
 
-def test_start_session_tavus_error(client: TestClient, fake_client: FakeTavusClient) -> None:
+def test_start_session_provider_error(client: TestClient, fake_client: FakeAvatarClient) -> None:
     fake_client.fail_paths.add("/conversations")
     res = client.post("/api/start-session", json={"visa_type": "f1"})
     assert res.status_code == 502
 
 
-def test_end_session(client: TestClient, fake_client: FakeTavusClient) -> None:
+def test_end_session(client: TestClient, fake_client: FakeAvatarClient) -> None:
     res = client.post("/api/end-session", json={"conversation_id": "c123"})
     assert res.status_code == 200
     assert res.json() == {"ended": True}
     assert ("POST", "/conversations/c123/end", None) in fake_client.calls
 
 
-def test_end_session_swallows_errors(client: TestClient, fake_client: FakeTavusClient) -> None:
+def test_end_session_swallows_errors(client: TestClient, fake_client: FakeAvatarClient) -> None:
     fake_client.fail_paths.add("/conversations/c123/end")
     res = client.post("/api/end-session", json={"conversation_id": "c123"})
     assert res.status_code == 200
@@ -263,26 +263,26 @@ def _deps_by_visa() -> dict[VisaType, PersonaDeps]:
 
 
 def test_ensure_personas_creates_reuses_resyncs(
-    fake_client: FakeTavusClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    fake_client: FakeAvatarClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setattr(cache, "CACHE_DIR", tmp_path)
-    tavus = cast(TavusClient, fake_client)
+    avatar = cast(AvatarClient, fake_client)
     deps = _deps_by_visa()
     n = len(VISA_TYPES)
 
     # First run: nothing cached -> one persona created per visa type.
-    first = asyncio.run(ensure_personas(tavus, "r_test", "tavus-gpt-oss", deps))
+    first = asyncio.run(ensure_personas(avatar, "r_test", "tavus-gpt-oss", deps))
     assert set(first) == set(VISA_TYPES)
     assert fake_client.create_count == n
 
     # Mark them as existing; same inputs -> reuse, no new creates.
     fake_client.existing.update(first.values())
-    second = asyncio.run(ensure_personas(tavus, "r_test", "tavus-gpt-oss", deps))
+    second = asyncio.run(ensure_personas(avatar, "r_test", "tavus-gpt-oss", deps))
     assert second == first
     assert fake_client.create_count == n
 
     # Change the model -> payload hash differs -> re-created (the staleness fix).
-    third = asyncio.run(ensure_personas(tavus, "r_test", "tavus-gemini-3-flash", deps))
+    third = asyncio.run(ensure_personas(avatar, "r_test", "tavus-gemini-3-flash", deps))
     assert fake_client.create_count == 2 * n
     assert third != first
 
@@ -293,7 +293,7 @@ def test_objectives_link_chain_single_root() -> None:
     chained = link_chain(OBJECTIVES["n400"])
     names = {o["objective_name"] for o in chained}
     referenced = {o["next_required_objective"] for o in chained if "next_required_objective" in o}
-    # Tavus requires exactly one root (an objective not referenced by any other).
+    # the provider requires exactly one root (an objective not referenced by any other).
     assert len(names - referenced) == 1
     # Source specs are not mutated.
     assert "next_required_objective" not in OBJECTIVES["n400"][0]
@@ -302,13 +302,13 @@ def test_objectives_link_chain_single_root() -> None:
 def test_load_settings_missing_key(monkeypatch: pytest.MonkeyPatch) -> None:
     from app import config
 
-    monkeypatch.delenv("TAVUS_API_KEY", raising=False)
+    monkeypatch.delenv("AVATAR_API_KEY", raising=False)
     monkeypatch.setattr(
         config.Settings,
         "model_config",
         {**config.Settings.model_config, "env_file": "/nonexistent/visa-drill/.env"},
     )
-    with pytest.raises(RuntimeError, match="TAVUS_API_KEY is not set"):
+    with pytest.raises(RuntimeError, match="AVATAR_API_KEY is not set"):
         load_settings()
 
 
@@ -320,7 +320,7 @@ def test_preset_personas(monkeypatch: pytest.MonkeyPatch) -> None:
         "model_config",
         {**config.Settings.model_config, "env_file": "/nonexistent/.env"},
     )
-    monkeypatch.setenv("TAVUS_API_KEY", "sk-test")
+    monkeypatch.setenv("AVATAR_API_KEY", "sk-test")
 
     keys = ("PERSONA_B1B2_ID", "PERSONA_F1_ID", "PERSONA_H1B_ID", "PERSONA_J1_ID", "PERSONA_N400_ID")
 

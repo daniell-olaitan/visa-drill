@@ -1,9 +1,9 @@
-"""VisaDrill FastAPI backend: turns visa-interview personas into live Tavus CVI calls.
+"""VisaDrill FastAPI backend: turns visa-interview personas into live the conversational video AI calls.
 
-Provisions the full Tavus feature set at startup (personas with perception, STT,
+Provisions the full the provider feature set at startup (personas with perception, STT,
 flow, and pronunciation layers; objectives; guardrails; a civics knowledge-base
 document) with graceful degradation, then exposes session, webhook, and report
-endpoints. See TAVUS_GUIDE.md for the underlying API.
+endpoints.
 """
 
 from __future__ import annotations
@@ -38,13 +38,13 @@ from .models import (
 )
 from .personas import SPECS, VISA_TYPES, PersonaMap, VisaType
 from .provisioning import provision
-from .tavus import TavusApiError, TavusClient
+from .avatar import AvatarApiError, AvatarClient
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("visadrill")
 
-# Conversation runtime limits. Idle Tavus sessions keep billing GPU time, so both
-# timeouts are always set (see TAVUS_GUIDE.md section 8). The hard call cap is the
+# Conversation runtime limits. Idle the provider sessions keep billing GPU time, so both
+# timeouts are always set. The hard call cap is the
 # visible interview length plus a small safety buffer.
 CALL_DURATION_BUFFER_S = 30
 PARTICIPANT_LEFT_TIMEOUT_S = 10
@@ -69,16 +69,16 @@ CATEGORY_TO_VISA: dict[str, VisaType] = {
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Verify the API key and resolve the personas (preset env ids or provision)."""
     settings: Settings = load_settings()
-    client = TavusClient(settings.tavus_api_key)
+    client = AvatarClient(settings.avatar_api_key)
 
-    logger.info("verifying Tavus API key...")
+    logger.info("verifying the provider API key...")
     verify = await client.request("GET", "/personas", params={"limit": 1})
     if verify.status_code == 401:
         await client.aclose()
-        raise RuntimeError("Tavus API key is invalid (401 from GET /v2/personas).")
+        raise RuntimeError("the provider API key is invalid (401 from GET /v2/personas).")
     if not verify.is_success:
         await client.aclose()
-        raise RuntimeError(f"Tavus key check failed: {verify.status_code} {verify.text[:200]}")
+        raise RuntimeError(f"the provider key check failed: {verify.status_code} {verify.text[:200]}")
     logger.info("API key verified.")
 
     preset = settings.preset_personas()
@@ -88,10 +88,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         personas: PersonaMap = {visa: preset[visa] for visa in VISA_TYPES}
         logger.info("using preset persona ids from env: %s", personas)
     else:
-        logger.info("provisioning resources (replica=%s)...", settings.tavus_replica_id)
+        logger.info("provisioning resources (replica=%s)...", settings.avatar_replica_id)
         try:
             personas = await provision(client, settings)
-        except TavusApiError:
+        except AvatarApiError:
             await client.aclose()
             raise
         logger.info("personas ready: %s", personas)
@@ -109,7 +109,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="VisaDrill", lifespan=lifespan)
 
 
-def _client(app: FastAPI) -> TavusClient:
+def _client(app: FastAPI) -> AvatarClient:
     return app.state.client
 
 
@@ -122,19 +122,19 @@ async def health() -> HealthResponse:
     settings: Settings = app.state.settings
     return HealthResponse(
         api_key_valid=True,
-        replica_id=settings.tavus_replica_id,
+        replica_id=settings.avatar_replica_id,
         personas={str(visa): pid for visa, pid in _personas(app).items()},
     )
 
 
 @app.get("/api/replicas", response_model=list[StockReplica])
 async def list_replicas() -> list[StockReplica]:
-    """List Tavus stock replicas so the interviewer face can be swapped via TAVUS_REPLICA_ID."""
+    """List the provider stock replicas so the interviewer face can be swapped via AVATAR_REPLICA_ID."""
     try:
         data = await _client(app).request_json(
             "GET", "/replicas", params={"replica_type": "system", "limit": 100}
         )
-    except TavusApiError as err:
+    except AvatarApiError as err:
         raise HTTPException(status_code=502, detail=str(err)) from err
     items = data.get("data", []) if isinstance(data, dict) else []
     return [
@@ -159,7 +159,7 @@ async def start_session(body: StartSessionRequest) -> StartSessionResponse:
 
     payload: dict[str, Any] = {
         "persona_id": persona_id,
-        "replica_id": settings.tavus_replica_id,
+        "replica_id": settings.avatar_replica_id,
         "conversation_name": f"VisaDrill {body.visa_type}",
         "custom_greeting": SPECS[body.visa_type].greeting,
         "properties": properties,
@@ -170,22 +170,21 @@ async def start_session(body: StartSessionRequest) -> StartSessionResponse:
     # Cross-session memory (feature #7): a stable, user-specific store key.
     if body.applicant_id:
         payload["memory_stores"] = [f"{body.applicant_id}-{body.visa_type}"]
-    # Webhook delivery (feature #1) when a public URL is known. Render injects
-    # RENDER_EXTERNAL_URL automatically, so deployed instances need no extra config.
-    webhook_base = settings.public_base_url or os.getenv("RENDER_EXTERNAL_URL")
-    if webhook_base:
-        payload["callback_url"] = f"{webhook_base.rstrip('/')}/api/webhook"
+    # Webhook delivery (feature #1) when a public URL is known. Set PUBLIC_BASE_URL
+    # to your deployed origin so events can POST to <base>/api/webhook.
+    if settings.public_base_url:
+        payload["callback_url"] = f"{settings.public_base_url.rstrip('/')}/api/webhook"
 
     try:
         conversation = await _client(app).request_json("POST", "/conversations", json=payload)
-    except TavusApiError as err:
+    except AvatarApiError as err:
         logger.error("start-session failed: %s", err)
         raise HTTPException(status_code=502, detail=str(err)) from err
 
     url = conversation.get("conversation_url")
     conversation_id = conversation.get("conversation_id")
     if not isinstance(url, str) or not isinstance(conversation_id, str):
-        raise HTTPException(status_code=502, detail=f"unexpected Tavus response: {conversation}")
+        raise HTTPException(status_code=502, detail=f"unexpected the provider response: {conversation}")
 
     logger.info("start-session: visa=%s conversation_id=%s", body.visa_type, conversation_id)
     return StartSessionResponse(conversation_url=url, conversation_id=conversation_id)
@@ -193,10 +192,10 @@ async def start_session(body: StartSessionRequest) -> StartSessionResponse:
 
 @app.post("/api/liveavatar/embed", response_model=EmbedResponse)
 async def embed(body: EmbedRequest) -> EmbedResponse:
-    """Avatar-embed endpoint the frontend calls; returns a Tavus conversation URL.
+    """Avatar-embed endpoint the frontend calls; returns a provider conversation URL.
 
     Mirrors the frontend's existing LiveAvatar embed contract ({category} -> {url})
-    so the interview UI works unchanged, but the URL is a Tavus Daily room.
+    so the interview UI works unchanged, but the URL is a provider room.
     """
     settings: Settings = app.state.settings
     category = body.category.lower()
@@ -215,10 +214,10 @@ async def embed(body: EmbedRequest) -> EmbedResponse:
 
 @app.post("/api/end-session")
 async def end_session(body: EndSessionRequest) -> dict[str, bool]:
-    """End a Tavus conversation so its room shuts down and billing stops promptly."""
+    """End a provider conversation so its room shuts down and billing stops promptly."""
     try:
         await _client(app).request_json("POST", f"/conversations/{body.conversation_id}/end")
-    except TavusApiError as err:
+    except AvatarApiError as err:
         # Ending an already-ended conversation is not worth surfacing to the user.
         logger.warning("end-session non-fatal error: %s", err)
     return {"ended": True}
@@ -227,18 +226,18 @@ async def end_session(body: EndSessionRequest) -> dict[str, bool]:
 async def _store_waitlist_email(email: str) -> bool:
     """Persist a waitlist email.
 
-    Prefers a Supabase `waitlist` table when SUPABASE_URL + SUPABASE_SERVICE_KEY
+    Prefers a database `waitlist` table when DB_URL + DB_SERVICE_KEY
     are set (durable, dedupes on the unique email column), and falls back to a
     local JSONL file otherwise (handy for dev; ephemeral on hosts without a
     persistent disk). Returns True if the email was stored somewhere.
     """
-    supabase_url = os.getenv("SUPABASE_URL")
-    service_key = os.getenv("SUPABASE_SERVICE_KEY")
-    if supabase_url and service_key:
+    db_url = os.getenv("DB_URL")
+    service_key = os.getenv("DB_SERVICE_KEY")
+    if db_url and service_key:
         try:
             async with httpx.AsyncClient(timeout=10.0) as http:
                 res = await http.post(
-                    f"{supabase_url.rstrip('/')}/rest/v1/waitlist",
+                    f"{db_url.rstrip('/')}/rest/v1/waitlist",
                     headers={
                         "apikey": service_key,
                         "Authorization": f"Bearer {service_key}",
@@ -249,9 +248,9 @@ async def _store_waitlist_email(email: str) -> bool:
             # 2xx = inserted; 409 = the email is already on the list. Both are fine.
             if res.is_success or res.status_code == 409:
                 return True
-            logger.warning("supabase waitlist insert failed: %s %s", res.status_code, res.text[:200])
+            logger.warning("waitlist DB insert failed: %s %s", res.status_code, res.text[:200])
         except httpx.HTTPError as err:
-            logger.warning("supabase waitlist insert error: %s", err)
+            logger.warning("waitlist DB insert error: %s", err)
 
     record = {"email": email, "joined_at": datetime.now(timezone.utc).isoformat()}
     try:
@@ -268,7 +267,7 @@ async def _store_waitlist_email(email: str) -> bool:
 async def join_waitlist(body: WaitlistRequest) -> JSONResponse:
     """Capture a waitlist signup from the landing form.
 
-    Stores to Supabase when configured, else a local file. Returns the
+    Stores to the database when configured, else a local file. Returns the
     {data, error} shape the client form expects.
     """
     email = body.email.strip().lower()
@@ -289,22 +288,22 @@ async def join_waitlist(body: WaitlistRequest) -> JSONResponse:
 
 
 async def _list_waitlist_emails() -> list[dict[str, Any]]:
-    """Read all waitlist signups (newest first) from Supabase, else the local file."""
-    supabase_url = os.getenv("SUPABASE_URL")
-    service_key = os.getenv("SUPABASE_SERVICE_KEY")
-    if supabase_url and service_key:
+    """Read all waitlist signups (newest first) from the database, else the local file."""
+    db_url = os.getenv("DB_URL")
+    service_key = os.getenv("DB_SERVICE_KEY")
+    if db_url and service_key:
         try:
             async with httpx.AsyncClient(timeout=10.0) as http:
                 res = await http.get(
-                    f"{supabase_url.rstrip('/')}/rest/v1/waitlist",
+                    f"{db_url.rstrip('/')}/rest/v1/waitlist",
                     params={"select": "email,joined_at", "order": "joined_at.desc"},
                     headers={"apikey": service_key, "Authorization": f"Bearer {service_key}"},
                 )
             if res.is_success:
                 return res.json()
-            logger.warning("supabase waitlist list failed: %s %s", res.status_code, res.text[:200])
+            logger.warning("waitlist DB list failed: %s %s", res.status_code, res.text[:200])
         except httpx.HTTPError as err:
-            logger.warning("supabase waitlist list error: %s", err)
+            logger.warning("waitlist DB list error: %s", err)
 
     entries: list[dict[str, Any]] = []
     try:
@@ -336,7 +335,7 @@ async def list_waitlist(request: Request) -> JSONResponse:
 
 @app.post("/api/webhook")
 async def webhook(request: Request) -> dict[str, bool]:
-    """Receive Tavus webhook events (transcript, perception analysis)."""
+    """Receive the provider webhook events (transcript, perception analysis)."""
     event = await request.json()
     conversation_id = event.get("conversation_id") if isinstance(event, dict) else None
     if isinstance(conversation_id, str):
@@ -349,7 +348,7 @@ async def webhook(request: Request) -> dict[str, bool]:
     return {"received": True}
 
 
-# Only genuinely spoken turns belong in the transcript. Tavus also emits the system
+# Only genuinely spoken turns belong in the transcript. the provider also emits the system
 # prompt and internal context (timezone, SSML/TTS directions) as non-spoken roles.
 _SPOKEN_ROLES = {"user", "assistant", "replica", "agent"}
 # Spoken utterances are short; anything this long is a system prompt / context blob.
@@ -378,7 +377,7 @@ def _clean_turns(raw: list[Any]) -> list[TranscriptTurn]:
 def _parse_events(
     events: list[Any],
 ) -> tuple[list[TranscriptTurn], str | None]:
-    """Extract the transcript and perception analysis from Tavus events."""
+    """Extract the transcript and perception analysis from the provider events."""
     transcript: list[TranscriptTurn] = []
     utterances: list[dict[str, Any]] = []
     perception: str | None = None
@@ -415,7 +414,7 @@ async def report(conversation_id: str) -> ReportResponse:
         convo = await _client(app).request_json(
             "GET", f"/conversations/{conversation_id}", params={"verbose": "true"}
         )
-    except TavusApiError as err:
+    except AvatarApiError as err:
         raise HTTPException(status_code=502, detail=str(err)) from err
 
     events = convo.get("events") if isinstance(convo, dict) else None

@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 
 from . import cache
-from .tavus import TavusClient
+from .avatar import AvatarClient
 
 logger = logging.getLogger(__name__)
 
@@ -38,13 +38,13 @@ GUARDRAILS: list[tuple[str, str, str]] = [
 ]
 
 
-async def ensure_guardrails(client: TavusClient) -> list[str]:
+async def ensure_guardrails(client: AvatarClient) -> list[str]:
     """Create or reuse the guardrails and return their ids in declaration order."""
     ids: list[str] = []
     for name, prompt, modality in GUARDRAILS:
         want_hash = cache.hash_spec({"name": name, "prompt": prompt, "modality": modality})
 
-        async def create(_client: TavusClient, _key: str, *, _n: str = name, _p: str = prompt, _m: str = modality) -> str:
+        async def create(_client: AvatarClient, _key: str, *, _n: str = name, _p: str = prompt, _m: str = modality) -> str:
             created = await _client.request_json(
                 "POST",
                 "/guardrails",

@@ -12,7 +12,7 @@ interface LiveAvatarVideoInterviewProps {
   category: VisaCategory;
   /** Optional applicant pre-form context, passed to the officer. */
   context?: string | null;
-  /** Receives the Tavus conversation id so the debrief can fetch the report. */
+  /** Receives the provider conversation id so the debrief can fetch the report. */
   onComplete: (conversationId: string | null) => void;
   onLeave: () => void;
   /** Called when the call can't be created, so the caller can fall back. */
@@ -22,7 +22,7 @@ interface LiveAvatarVideoInterviewProps {
 const formatTime = (s: number): string => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 /**
- * Renders the Tavus interview with the Daily SDK (not an iframe) so we control
+ * Renders the interview with the WebRTC SDK (not an iframe) so we control
  * the layout: the officer fills the card and the applicant's self-view is a small
  * PiP we size ourselves - fully responsive on mobile. We also manage audio, which
  * iOS may block until a tap, hence the "tap to hear the officer" fallback.
@@ -127,7 +127,7 @@ const LiveAvatarVideoInterview = ({
         if (ev?.track) attach(ev.track, Boolean(ev.participant?.local));
       });
 
-      // Live captions: Tavus streams spoken text over the data channel.
+      // Live captions: the provider streams spoken text over the data channel.
       call.on("app-message", (ev) => {
         const msg = ev?.data as
           | { event_type?: string; properties?: { role?: string; speech?: string; text?: string } }

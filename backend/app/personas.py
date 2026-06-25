@@ -1,7 +1,7 @@
-"""Visa-interview persona specs and create-or-reuse logic against the Tavus API.
+"""Visa-interview persona specs and create-or-reuse logic against the provider API.
 
-Ports the three original interview agents to Tavus Personas and layers on the
-CVI pipeline configuration: perception (Raven, feature #1), STT hotwords and
+Ports the three original interview agents to the provider Personas and layers on the
+CVI pipeline configuration: perception (the perception model, feature #1), STT hotwords and
 conversational-flow tuning (feature #6), a pronunciation dictionary (feature #9),
 objectives (feature #2), guardrails (feature #5), and knowledge-base documents
 (feature #4). The full create payload is hashed, so changing any prompt, layer,
@@ -16,14 +16,14 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from . import cache
-from .tavus import TavusApiError, TavusClient
+from .avatar import AvatarApiError, AvatarClient
 
 logger = logging.getLogger(__name__)
 
 VisaType = Literal["b1b2", "f1", "h1b", "j1", "n400"]
 VISA_TYPES: tuple[VisaType, ...] = ("b1b2", "f1", "h1b", "j1", "n400")
 
-# Live perception cues (raven-1) that subtly inform the officer mid-interview.
+# Live perception cues that subtly inform the officer mid-interview.
 VISUAL_AWARENESS: list[str] = [
     "Is the applicant making eye contact with the camera?",
     "Does the applicant appear nervous, hesitant, or evasive right now?",
@@ -235,17 +235,17 @@ def build_persona_payload(
     return payload
 
 
-async def _persona_exists(client: TavusClient, persona_id: str) -> bool:
+async def _persona_exists(client: AvatarClient, persona_id: str) -> bool:
     response = await client.request("GET", f"/personas/{persona_id}")
     if response.status_code == 200:
         return True
     if response.status_code == 404:
         return False
-    raise TavusApiError(response.status_code, f"/personas/{persona_id}", response.text)
+    raise AvatarApiError(response.status_code, f"/personas/{persona_id}", response.text)
 
 
 async def ensure_personas(
-    client: TavusClient,
+    client: AvatarClient,
     replica_id: str,
     llm_model: str,
     deps_by_visa: dict[VisaType, PersonaDeps],
@@ -261,7 +261,7 @@ async def ensure_personas(
         payload = build_persona_payload(SPECS[visa], replica_id, llm_model, deps_by_visa[visa])
         want_hash = cache.hash_spec(payload)
 
-        async def create(_client: TavusClient, _key: str, *, _payload: dict[str, Any] = payload) -> str:
+        async def create(_client: AvatarClient, _key: str, *, _payload: dict[str, Any] = payload) -> str:
             created = await _client.request_json("POST", "/personas", json=_payload)
             return cache.extract_id(created, "persona_id", "id")
 

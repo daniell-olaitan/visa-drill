@@ -1,4 +1,4 @@
-// Turns a live Tavus interview transcript into a scored debrief by reusing the
+// Turns a live the provider interview transcript into a scored debrief by reusing the
 // same heuristic engine the simulator uses (specificity, hedging, length, phase
 // fit). No extra API call or cost.
 

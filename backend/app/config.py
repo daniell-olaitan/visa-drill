@@ -15,9 +15,9 @@ REPO_ROOT: Path = Path(__file__).resolve().parents[2]
 def _load_dotenv_into_environ(path: Path) -> None:
     """Load KEY=VALUE lines from .env into os.environ without overriding real env
     vars. pydantic-settings reads .env into Settings only, so values consumed via
-    os.getenv (the waitlist's SUPABASE_URL / SUPABASE_SERVICE_KEY / ADMIN_TOKEN /
+    os.getenv (the waitlist's DB_URL / DB_SERVICE_KEY / ADMIN_TOKEN /
     WAITLIST_FILE) would otherwise be invisible in local dev. Hosts that inject
-    real env vars (e.g. Render) still win, because setdefault does not override.
+    real env vars (e.g. the host) still win, because setdefault does not override.
     """
     if not path.exists():
         return
@@ -44,21 +44,21 @@ _load_dotenv_into_environ(REPO_ROOT / ".env")
 class Settings(BaseSettings):
     """Application settings sourced from environment variables and `.env`."""
 
-    tavus_api_key: str
-    # Stock replica used for every interviewer. Swap via TAVUS_REPLICA_ID; list
+    avatar_api_key: str
+    # Stock replica used for every interviewer. Swap via AVATAR_REPLICA_ID; list
     # available stock replicas with `GET /api/replicas`.
-    tavus_replica_id: str = "rfb0463909e3"  # "James - Office", a male officer
-    # Tavus-hosted LLM that drives the persona. tavus-gpt-oss is the lowest-latency default.
-    tavus_llm_model: str = "tavus-gpt-oss"
+    avatar_replica_id: str = "rfb0463909e3"  # "James - Office", a male officer
+    # the provider-hosted LLM that drives the persona. tavus-gpt-oss is the lowest-latency default.
+    avatar_llm_model: str = "tavus-gpt-oss"
     port: int = 8787
     cors_origin: str = "http://localhost:5173"
 
     # Visible interview length in seconds (the client countdown). Keep it short to
-    # conserve Tavus minutes. The Tavus hard cap is set a little above this.
+    # conserve the provider minutes. The the provider hard cap is set a little above this.
     interview_duration_seconds: int = 240
 
     # Pre-provisioned persona ids (from `scripts/provision.py`). When ALL are set,
-    # startup skips creating any Tavus resources, so ephemeral hosts (e.g. Render
+    # startup skips creating any the provider resources, so ephemeral hosts (e.g. the host
     # free) do not re-provision and duplicate resources on every cold start.
     persona_b1b2_id: str | None = None
     persona_f1_id: str | None = None
@@ -88,7 +88,7 @@ class Settings(BaseSettings):
         "https://www.uscis.gov/sites/default/files/document/questions-and-answers/100q.pdf"
     )
 
-    # Public base URL of this server (e.g. an ngrok https URL) so Tavus can POST
+    # Public base URL of this server (e.g. an a tunnel https URL) so the provider can POST
     # webhooks to <base>/api/webhook. Leave unset to rely on verbose polling.
     public_base_url: str | None = None
 
@@ -106,6 +106,6 @@ def load_settings() -> Settings:
         return Settings()  # type: ignore[call-arg]  # values come from env / .env
     except ValidationError as err:
         raise RuntimeError(
-            "TAVUS_API_KEY is not set. Copy .env.example to .env at the project "
-            "root and add your Tavus API key."
+            "AVATAR_API_KEY is not set. Copy .env.example to .env at the project "
+            "root and add your the provider API key."
         ) from err

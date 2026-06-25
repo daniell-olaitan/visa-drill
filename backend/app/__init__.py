@@ -1,1 +1,1 @@
-"""VisaDrill FastAPI backend powered by the Tavus CVI API."""
+"""VisaDrill FastAPI backend powered by the conversational video AI API."""

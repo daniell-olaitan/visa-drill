@@ -21,7 +21,7 @@ export interface StoredSession {
   endedAt: string;
   questions: Question[];
   records: AnswerRecord[];
-  /** Tavus conversation id for live sessions, used to fetch the debrief report. */
+  /** the provider conversation id for live sessions, used to fetch the debrief report. */
   liveConversationId?: string;
   /** Pre-interview form answers, when the applicant filled them in. */
   prep?: PrepAnswers;

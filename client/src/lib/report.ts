@@ -1,4 +1,4 @@
-// Fetches the Tavus-powered debrief for a live interview from the FastAPI backend
+// Fetches the debrief for a live interview from the FastAPI backend
 // (GET /api/report/:id). Mirrors the backend ReportResponse shape.
 
 export interface TranscriptTurn {
