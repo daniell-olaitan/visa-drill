@@ -11,17 +11,16 @@ Interview tracks (the categories the frontend offers):
 
 There's also a general "any" practice mode. (A USCIS **N-400 citizenship** officer exists in the backend but isn't exposed in the UI.)
 
-> **Single service**: the FastAPI backend serves the real VisaDrill SPA (the
-> `jedidiah-oladele/facedrill` Vite/React/shadcn app, in `client/`) and the
-> Tavus-backed `/api`. The live officer is rendered with the **Daily SDK** (our own
-> in-call UI). If the avatar can't start, a zero-config **browser simulator** takes over.
+> **Single service**: the FastAPI backend serves the Vite/React/shadcn SPA (in `client/`) and the Tavus-backed `/api`. The marketing landing is a 1:1 reproduction of the VisaDrill design (a `motion`-animated, scroll-pinned page with the Nexa/Mulish typeface), and the live officer is rendered with the **Daily SDK** (our own in-call UI). If the avatar can't start, a zero-config **browser simulator** takes over.
 
 ## How an interview works
 
 1. **Practice** page → pick a visa category.
-2. **Optional pre-interview form** ("DS-160-lite": purpose, funding, employer/school, ties, prior travel). Skippable; if filled, the answers are sent to the officer as context so it interviews you on your real situation. The Start/Skip tap also unlocks iOS audio.
-3. **Live interview** (`/interview`, full-screen): the Tavus officer rendered via the Daily SDK - officer video fills the card, your self-view is a PiP, with **mic/camera** controls, **live captions (CC toggle)**, a **countdown that auto-ends**, and a **REC** indicator when recording is on.
+2. A brief **"I'm ready" briefing** screen (no form to fill in). The tap also unlocks iOS audio so the officer's voice can autoplay.
+3. **Live interview** (`/interview`, full-screen): the Tavus officer rendered via the Daily SDK, with the officer video filling the card, your self-view as a PiP, **mic/camera** controls, **live captions (CC toggle)**, a **countdown that auto-ends**, and a **REC** indicator when recording is on.
 4. **Debrief** (`/debrief`): a scored report (below).
+
+The officer opens by asking the purpose of the trip; it does not ask for the applicant's name.
 
 ## Per-category officers
 
@@ -41,11 +40,11 @@ Each category maps 1:1 to a **dedicated Tavus persona** with its own grounded pr
 For a live interview, `/debrief` (`LiveDebrief.tsx`) fetches `/api/report/:id` and shows:
 
 - a **verdict** + **approval-readiness score (0-100)**, with **progress vs. your last attempt**,
-- **per-area scores** (purpose, ties, finances, …),
-- **per-answer notes** (what landed / what to tighten) - computed by reusing the simulator's heuristic engine on the transcript; **unanswered questions count as zero**, so going silent tanks the score,
+- **per-area scores** (purpose, ties, finances, and so on),
+- **per-answer notes** (what landed / what to tighten), computed by reusing the simulator's free heuristic engine on the transcript; **unanswered questions count as zero**, so going silent tanks the score,
 - the officer's **demeanor read** (Raven perception) and a **recording link** when available.
 
-The browser simulator keeps its own local heuristic debrief.
+The scoring is local and free (no extra LLM call), and the browser simulator keeps its own local heuristic debrief.
 
 ## Tavus features used
 
@@ -54,26 +53,28 @@ The browser simulator keeps its own local heuristic debrief.
 | 1 | **Perception (Raven)** | Live awareness cues + end-of-call demeanor analysis |
 | 2 | **Objectives** | A per-category objective set drives flow + structured output |
 | 3 | **Recording** | Optional; copied to your own Azure/S3. Off by default |
-| 4 | **Knowledge base (RAG)** | USCIS civics doc - attached to the **N-400** officer only (not the visa tracks) |
+| 4 | **Knowledge base (RAG)** | USCIS civics doc, attached to the **N-400** officer only (not the visa tracks) |
 | 5 | **Guardrails** | Never coach/break character, block real PII, stay on topic |
 | 6 | **Flow + STT** | Turn-taking, interruptibility, **idle re-engagement**, hotwords |
 | 7 | **Memories** | Implemented (`memory_stores`) but **not currently wired** into the live embed flow |
 | 8 | **Language** | Defaults to English; not yet a UI picker |
-| 9 | **Pronunciation dictionary** | Correct TTS of "USCIS", "N-400", etc. |
+| 9 | **Pronunciation dictionary** | Correct TTS of "USCIS", "N-400", and similar terms |
 
 Every feature degrades gracefully: if a Tavus resource fails to provision at startup, the backend logs a warning and boots without it.
 
 ## Models
 
-Three Tavus models are in play: **Phoenix-4** renders the replica, **Raven-1** is perception, **Sparrow-1** is turn-taking. Phoenix comes from the stock replica; Raven/Sparrow are set in the persona layers.
+Three Tavus models are in play: **Phoenix-4** renders the replica, **Raven-1** is perception, and **Sparrow-1** is turn-taking. Phoenix comes from the stock replica; Raven/Sparrow are set in the persona layers.
 
 ## Stack
 
 | Layer | Technology |
 |---|---|
-| Frontend (`client/`) | Vite + React 18 + TypeScript + Tailwind + shadcn/ui + `@daily-co/daily-js`; optional Supabase waitlist |
+| Frontend (`client/`) | Vite + React 18 + TypeScript + Tailwind + shadcn/ui + `@daily-co/daily-js`, with `motion` (Framer Motion) and the Nexa/Mulish fonts for the landing |
 | Backend (`backend/`) | Python 3.11+ + FastAPI + httpx + Pydantic |
 | Avatar | Tavus CVI: a dedicated Persona + stock Replica per category |
+
+The landing also ships a light/dark theme toggle and an email waitlist form that posts to `/api/waitlist`. That endpoint is not implemented in the backend yet, so wire it up (or point the form elsewhere) to capture signups.
 
 ## Architecture
 
@@ -89,10 +90,9 @@ Browser (SPA served by FastAPI)              FastAPI (:8787)            Tavus AP
   End / time up ─► /debrief ─► GET /api/report/:id ─► scored debrief + demeanor read
 ```
 
-On startup the backend verifies the key, then provisions one dedicated **Persona** per
-visa type (`backend/app/personas.py`), each bound to a stock **Replica** and attached
-to its guardrails/objectives, caching ids by content hash. Set the `PERSONA_*_ID` env
-vars (from `scripts/provision.py`) to skip provisioning on ephemeral hosts.
+On startup the backend verifies the key, then provisions one dedicated **Persona** per visa type (`backend/app/personas.py`), each bound to a stock **Replica** and attached to its guardrails/objectives, caching ids by content hash. Set the `PERSONA_*_ID` env vars (from `scripts/provision.py`) to skip provisioning on ephemeral hosts.
+
+The officer's opening line is a per-conversation `custom_greeting` read from `SPECS` at session start, so changing a greeting takes effect on the next interview without re-provisioning. Re-provision only when you change something baked into a persona (its system prompt, objectives, guardrails, documents, or layers).
 
 ## Prerequisites
 
@@ -117,8 +117,7 @@ vars (from `scripts/provision.py`) to skip provisioning on ephemeral hosts.
    npm run dev
    ```
 
-   Vite proxies `/api` to the backend. (If `uvicorn` isn't on your PATH, run it yourself:
-   `cd backend && uvicorn app.main:app --reload --port 8787`.)
+   Vite proxies `/api` to the backend. (If `uvicorn` isn't on your PATH, run it yourself: `cd backend && uvicorn app.main:app --reload --port 8787`.)
 
 4. **Open** [http://localhost:8080](http://localhost:8080) → Practice → pick a category → Start, and grant mic + camera. (`/interview?mode=sim` forces the offline simulator.) Note: live interviews spend Tavus minutes even locally; tune length with `INTERVIEW_DURATION_SECONDS`.
 
@@ -132,13 +131,14 @@ vars (from `scripts/provision.py`) to skip provisioning on ephemeral hosts.
 | `PERSONA_*_ID` (×5) | Pre-provisioned persona ids; set all to skip startup provisioning |
 | `ENABLE_RECORDING`, `RECORDING_AZURE_*` / `RECORDING_*` (S3) | Optional recording |
 | `DEFAULT_LANGUAGE`, `CIVICS_DOCUMENT_URL`, `PUBLIC_BASE_URL` | Optional |
-| `VITE_SUPABASE_*` | Optional waitlist (build-time) |
 
 Pre-provision once and pin the ids so cold starts don't recreate resources:
 
 ```sh
 python backend/scripts/provision.py   # prints the five PERSONA_*_ID values
 ```
+
+Paste the printed `PERSONA_*_ID` lines into `.env` locally and into your host's env (for example the Render dashboard), then restart or redeploy.
 
 ## Verify which features your Tavus account supports
 
@@ -155,16 +155,16 @@ The `Dockerfile` builds the Vite frontend and serves it from FastAPI, so one fre
 
 1. Push the repo to GitHub.
 2. Render → **New → Blueprint** (reads `render.yaml`), or **Web Service → Docker**.
-3. Set the `sync: false` env vars in the dashboard (`TAVUS_API_KEY`, `PERSONA_*_ID`, recording vars, etc.).
-4. Deploy → live at `https://<name>.onrender.com`; `/api/health` is the health check, SPA at `/`.
+3. Set the `sync: false` env vars in the dashboard (`TAVUS_API_KEY`, `PERSONA_*_ID`, recording vars, and so on).
+4. Deploy → live at `https://<name>.onrender.com`; `/api/health` is the health check and the SPA is at `/`.
 
-Free-tier: spins down after ~15 min idle (~30-60s cold start). With `PERSONA_*_ID` set, startup skips provisioning (no duplicate resources).
+Free-tier: spins down after about 15 min idle (roughly 30-60s cold start). With `PERSONA_*_ID` set, startup skips provisioning, so there are no duplicate resources.
 
 ## Recording storage (optional)
 
-Tavus copies recordings into **your own** cloud via federated identity - **Azure Blob** or **AWS S3** (Cloudflare R2 is *not* supported; S3 mode needs AWS IAM AssumeRole). Off by default; the debrief's transcript + demeanor work without it.
+Tavus copies recordings into **your own** cloud via federated identity, either **Azure Blob** or **AWS S3** (Cloudflare R2 is *not* supported; S3 mode needs AWS IAM AssumeRole). Recording is off by default, and the debrief's transcript + demeanor work without it.
 
-- **Azure:** `az login` then `STORAGE_ACCOUNT=… RESOURCE_GROUP=… WORKSPACE_ID=<your Tavus Workspace ID> ./infra/azure/setup-recording.sh` (the federated-credential subject is your Tavus Workspace ID, so each Tavus account needs its own).
+- **Azure:** `az login`, then `STORAGE_ACCOUNT=… RESOURCE_GROUP=… WORKSPACE_ID=<your Tavus Workspace ID> ./infra/azure/setup-recording.sh` (the federated-credential subject is your Tavus Workspace ID, so each Tavus account needs its own).
 - **AWS:** `BUCKET=… REGION=… ./infra/aws/setup-recording.sh`
 
 Recording only happens on a real interview. To see the recording link in the debrief, set `PUBLIC_BASE_URL` so Tavus can POST the `recording_ready` webhook.
@@ -200,10 +200,10 @@ The backend follows the repo Python conventions: full type hints, modern union s
 - **"TAVUS_API_KEY is not set"** - create `.env` at the project root with a non-empty key.
 - **Startup 401** - the Tavus key is invalid or revoked.
 - **`embed`/`start-session` returns 502** - usually out of credits or an invalid `replica_id`/persona; the Tavus error body is logged.
-- **Officer never appears → drops to the simulator** - the embed/Daily join failed; check the browser console and the backend log for the `POST /v2/conversations` response. A "Live officer unavailable" notice appears bottom-left.
+- **Officer never appears and drops to the simulator** - the embed/Daily join failed; check the browser console and the backend log for the `POST /v2/conversations` response. A "Live officer unavailable" notice appears bottom-left.
 - **No audio on iPhone** - tap the "Tap to hear the officer" button; iOS blocks autoplay until a gesture.
 - **Idle calls billing** - conversations set `max_call_duration` + participant timeouts, and the client auto-ends at the countdown.
 
 ## Security note
 
-The Tavus API key is **server-side only** - it lives in `.env` and is read by the FastAPI backend. The browser only talks to our own `/api/*` routes.
+The Tavus API key is **server-side only**; it lives in `.env` and is read by the FastAPI backend. The browser only talks to our own `/api/*` routes.
