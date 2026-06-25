@@ -219,6 +219,7 @@ The backend follows the repo Python conventions: full type hints, modern union s
 - **Officer never appears and drops to the simulator** - the embed/Daily join failed; check the browser console and the backend log for the `POST /v2/conversations` response. A "Live officer unavailable" notice appears bottom-left.
 - **No audio on iPhone** - tap the "Tap to hear the officer" button; iOS blocks autoplay until a gesture.
 - **Idle calls billing** - conversations set `max_call_duration` + participant timeouts, and the client auto-ends at the countdown.
+- **Switching Tavus accounts** - delete `backend/.cache/` first, then re-provision. The cache keys created resource ids by content hash, not by account, so a new key reuses the old account's ids and Tavus rejects the persona with `Invalid objectives_id`.
 
 ## Security note
 
