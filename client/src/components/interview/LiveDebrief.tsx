@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Check, Ear, Eye, Loader2 } from "lucide-react";
+import { ArrowRight, Check, Ear, Loader2 } from "lucide-react";
 import Reveal from "@/components/motion/Reveal";
 import { cn } from "@/lib/utils";
 import { fetchReport, type InterviewReport } from "@/lib/report";
@@ -121,21 +121,6 @@ const LiveDebrief = ({ conversationId }: LiveDebriefProps) => {
           )}
         </div>
       </Reveal>
-
-      {/* Demeanor read (from perception) */}
-      {report?.perception_analysis && (
-        <Reveal delay={200}>
-          <article className="mt-6 rounded-3xl border border-border bg-card p-6 shadow-soft md:p-7">
-            <div className="flex items-center gap-2.5">
-              <Eye className="h-4 w-4 text-accent" strokeWidth={1.75} />
-              <h2 className="font-display text-lg font-semibold tracking-tight text-foreground">Demeanor read</h2>
-            </div>
-            <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-foreground/90">
-              {report.perception_analysis}
-            </p>
-          </article>
-        </Reveal>
-      )}
 
       {/* Per-area scores */}
       {dimensions.length > 0 && (
