@@ -1,83 +1,74 @@
 # Deploy VisaDrill to Vercel
 
-VisaDrill is a Vite/React frontend plus a FastAPI backend. On Vercel these deploy
-as **two projects from this one GitHub repo**:
+Two Vercel projects from this one repo. Visitors see a single site at
+`visadrill.com`; the frontend quietly forwards `/api/*` to the backend at
+`api.visadrill.com`. **No code editing needed** - just click through the dashboard.
 
-1. **Backend** - the FastAPI app, as a Python serverless function.
-2. **Frontend** - the Vite SPA, served on `visadrill.com`. It proxies `/api/*` to
-   the backend, so the browser only ever talks to `visadrill.com` (no CORS, and
-   the frontend code is unchanged).
-
-Do the **backend first** (the frontend needs its URL).
+Do the **backend first**.
 
 ---
 
-## Project 1: Backend
+## Project 1: Backend  (api.visadrill.com)
 
-1. Vercel -> **Add New -> Project** -> import this GitHub repo.
-2. **Root Directory: `backend`** (click Edit and select the `backend` folder). This
-   is the single most important setting.
-3. Framework Preset: leave as **Other** (the included `backend/vercel.json` drives
-   the build). Do not set a build/output command.
-4. **Environment Variables** (Production) - add all of these:
+1. Vercel -> **Add New -> Project** -> import this repo.
+2. **Root Directory: `backend`** (click Edit, choose the `backend` folder). This is
+   the one setting that matters.
+3. **Environment Variables** -> open the box and **paste this whole block**, then
+   fill in the 4 `<...>` values (the rest are already correct):
 
-   | Name | Value | Required? |
-   |---|---|---|
-   | `AVATAR_API_KEY` | your provider API key | **Yes** |
-   | `PERSONA_B1B2_ID` | the pinned id | **Yes** |
-   | `PERSONA_F1_ID` | the pinned id | **Yes** |
-   | `PERSONA_H1B_ID` | the pinned id | **Yes** |
-   | `PERSONA_J1_ID` | the pinned id | **Yes** |
-   | `PERSONA_N400_ID` | the pinned id | **Yes** |
-   | `AVATAR_REPLICA_ID` | `rfb0463909e3` | recommended |
-   | `INTERVIEW_DURATION_SECONDS` | e.g. `240` | optional |
-   | `DB_URL` | your database URL | for the waitlist |
-   | `DB_SERVICE_KEY` | your database service key | for the waitlist |
-   | `ADMIN_TOKEN` | a long random secret | to view signups |
-
-   > The five `PERSONA_*_ID` are **mandatory**. Serverless has a read-only disk, so
-   > the backend cannot provision personas at startup; it must use preset ids.
-   > Likewise the waitlist needs `DB_URL` + `DB_SERVICE_KEY` (no persistent disk).
-
-5. **Deploy.** When it finishes, copy the project's URL, e.g.
-   `https://visadrill-backend.vercel.app`.
-6. **Verify:** open `https://<backend-url>/api/health` - it must return JSON with
-   `api_key_valid: true` and five persona ids. If it does, the backend is good.
-
----
-
-## Project 2: Frontend
-
-1. **First**, edit `client/vercel.json` in the repo: replace
-   `REPLACE-WITH-BACKEND-URL` with the backend URL from step 5 above (host only, no
-   trailing slash), then commit and push. Example:
-
-   ```json
-   { "source": "/api/:path*", "destination": "https://visadrill-backend.vercel.app/api/:path*" }
+   ```
+   AVATAR_API_KEY=<your provider API key>
+   PERSONA_B1B2_ID=p7901663e42f
+   PERSONA_F1_ID=pcf6c09219cd
+   PERSONA_H1B_ID=p576112bb01f
+   PERSONA_J1_ID=p4ad8e7a0f63
+   PERSONA_N400_ID=p924d7278f82
+   AVATAR_REPLICA_ID=rfb0463909e3
+   INTERVIEW_DURATION_SECONDS=240
+   DB_URL=<your database URL>
+   DB_SERVICE_KEY=<your database service key>
+   ADMIN_TOKEN=<a long random secret>
    ```
 
-2. Vercel -> **Add New -> Project** -> import the **same** repo again.
-3. **Root Directory: `client`**.
-4. Framework Preset: **Vite** (auto-detected). Build `npm run build`, output `dist`
-   - the defaults; leave them.
-5. **Deploy.**
-6. **Domains:** project -> Settings -> Domains -> add **`visadrill.com`**.
+4. **Deploy.**
+5. **Domains** -> Settings -> Domains -> add **`api.visadrill.com`**.
+6. **Check:** open `https://api.visadrill.com/api/health` - it should return JSON
+   with `api_key_valid: true` and five persona ids. If yes, the backend is done.
 
 ---
 
-## Verify the whole thing
+## Project 2: Frontend  (visadrill.com)
 
-- `https://visadrill.com` - the landing page loads.
-- `https://visadrill.com/api/health` - returns the same JSON as the backend (this
-  proves the `/api` proxy works).
-- `https://visadrill.com/practice` -> start an interview -> the officer connects
-  (the live call is browser-to-provider over WebRTC; the backend just creates and
-  reads the session).
+1. Vercel -> **Add New -> Project** -> import the **same** repo again.
+2. **Root Directory: `client`**. Framework auto-detects as **Vite** - leave the
+   defaults.
+3. **Deploy.**
+4. **Domains** -> add **`visadrill.com`**.
 
-## Notes
+That's it. The frontend is already wired to `api.visadrill.com`, so there is
+nothing to edit.
 
-- **Auto-deploys:** both projects redeploy on every push to `main`. The backend
-  rebuilds only from `backend/`, the frontend only from `client/`.
-- **Webhooks are not needed** - the report reads the transcript directly from the
-  provider, so nothing depends on a persistent server.
-- **Python version** is 3.12 (Vercel default), which the backend supports.
+---
+
+## Final check
+
+- `https://visadrill.com` loads the landing page.
+- `https://visadrill.com/api/health` returns the persona JSON (proves the link
+  between the two projects works).
+- `https://visadrill.com/practice` -> start an interview -> the officer connects.
+
+---
+
+## Notes / gotchas
+
+- **The 5 `PERSONA_*_ID` are required** (already filled above). Serverless has a
+  read-only disk, so the backend uses preset persona ids instead of creating them.
+- **The waitlist needs `DB_URL` + `DB_SERVICE_KEY`** (no persistent disk on
+  serverless). Without them, signups are silently dropped.
+- **Not using the `api.visadrill.com` subdomain?** Then it's the only edit needed:
+  in `client/vercel.json`, swap `https://api.visadrill.com` for the backend's
+  `https://<name>.vercel.app` URL, commit, and push.
+- Both projects auto-redeploy on every push to `main` (backend rebuilds from
+  `backend/`, frontend from `client/`).
+- The persona ids above are the current values (from the project `.env`); update
+  this block if the provider account ever changes.
