@@ -1,5 +1,10 @@
 import type { Config } from "tailwindcss";
 
+// Full 0-100 opacity scale so visa-drill's /8, /45, /55 etc. all resolve in v3.
+const opacity = Object.fromEntries(
+	Array.from({ length: 101 }, (_, i) => [i, String(i / 100)]),
+);
+
 export default {
 	darkMode: ["class"],
 	content: [
@@ -22,9 +27,10 @@ export default {
 			}
 		},
 		extend: {
+			opacity,
 			fontFamily: {
-				sans: ['Inter Variable', 'Inter', 'system-ui', 'sans-serif'],
-				display: ['Inter Variable', 'Inter', 'system-ui', 'sans-serif'],
+				sans: ['Mulish', 'Inter Variable', 'Inter', 'system-ui', 'sans-serif'],
+				display: ['Nexa', 'Inter Variable', 'Inter', 'system-ui', 'sans-serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',
@@ -54,8 +60,16 @@ export default {
 				},
 				brand: {
 					DEFAULT: 'hsl(var(--brand))',
-					foreground: 'hsl(var(--brand-foreground))'
+					foreground: 'hsl(var(--brand-foreground))',
+					50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
+					400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
+					800: '#1e40af', 900: '#1e3a8a', 950: '#172554',
 				},
+				// visa-drill landing tokens (additive; do not affect the shadcn HSL tokens above)
+				ink: { DEFAULT: '#0d1117', secondary: '#4b5563', tertiary: '#9ca3af', inverse: '#ffffff' },
+				surface: { DEFAULT: '#ffffff', raised: '#f9fafb', overlay: '#f3f4f6', dark: '#0d1117' },
+				danger: { DEFAULT: '#ef4444', bg: '#fef2f2' },
+				'border-strong': '#d1d5db',
 				success: {
 					DEFAULT: 'hsl(var(--success))',
 					foreground: 'hsl(var(--success-foreground))'
@@ -76,7 +90,8 @@ export default {
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 4px)',
-				sm: 'calc(var(--radius) - 8px)'
+				sm: 'calc(var(--radius) - 8px)',
+				xs: '4px'
 			},
 			boxShadow: {
 				'soft': 'var(--shadow-soft)',

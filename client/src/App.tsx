@@ -23,8 +23,9 @@ const App = () => (
         <Routes>
           {/* Full-screen, no site header/footer, so it fits one screen. */}
           <Route path="/interview" element={<Interview />} />
+          {/* The landing brings its own visa-drill navbar + footer. */}
+          <Route path="/" element={<Index />} />
           <Route element={<AppLayout />}>
-            <Route path="/" element={<Index />} />
             <Route path="/practice" element={<Practice />} />
             <Route path="/debrief" element={<Debrief />} />
             {/* Legacy routes */}

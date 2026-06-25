@@ -187,3 +187,78 @@
     scrollbar-width: none;
   }
 }
+
+/* ── visa-drill landing: fonts, headings, and custom utilities ─────────────── */
+
+@font-face { font-family: "Nexa"; src: url("/fonts/nexa/NexaLight.otf") format("opentype");   font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Nexa"; src: url("/fonts/nexa/NexaBook.otf") format("opentype");    font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Nexa"; src: url("/fonts/nexa/NexaRegular.otf") format("opentype"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Nexa"; src: url("/fonts/nexa/NexaBold.otf") format("opentype");    font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Nexa"; src: url("/fonts/nexa/NexaHeavy.otf") format("opentype");   font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Nexa"; src: url("/fonts/nexa/NexaBlack.otf") format("opentype");   font-weight: 900; font-style: normal; font-display: swap; }
+
+/* Headings use the display face (Nexa), like visa-drill. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Nexa", "Inter Variable", "Inter", system-ui, sans-serif;
+}
+
+/* Override the earlier .font-display (was Inter) to Nexa. */
+.font-display {
+  font-family: "Nexa", "Inter Variable", "Inter", system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* Page canvas: one continuous light gradient the landing sits on. */
+.bg-canvas-base {
+  background-image: linear-gradient(180deg, #ffffff 0%, #f6f8fc 38%, #eaeff8 72%, #e4ebf6 100%);
+}
+
+/* Section textures. */
+.bg-dot-grid {
+  background-image: radial-gradient(circle, rgba(13, 17, 23, 0.05) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+}
+.bg-dot-grid-dark {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+}
+
+/* Footer ink-splash - soft brand bleed from the edges. */
+.bg-ink-splash {
+  background-color: #08080c;
+  background-image:
+    radial-gradient(55% 75% at 12% 118%, rgba(37, 99, 235, 0.18) 0%, transparent 60%),
+    radial-gradient(48% 68% at 88% -12%, rgba(59, 130, 246, 0.10) 0%, transparent 55%),
+    radial-gradient(42% 58% at 64% 132%, rgba(96, 165, 250, 0.09) 0%, transparent 60%);
+}
+
+/* Image compositing - dissolve a photo's edge into the section behind it. */
+.mask-fade-l { -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 50%); mask-image: linear-gradient(to right, transparent 0%, #000 50%); }
+.mask-fade-b { -webkit-mask-image: linear-gradient(to top, transparent 0%, #000 55%); mask-image: linear-gradient(to top, transparent 0%, #000 55%); }
+.mask-fade-lb {
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 52%), linear-gradient(to top, transparent 0%, #000 45%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent 0%, #000 52%), linear-gradient(to top, transparent 0%, #000 45%);
+  mask-composite: intersect;
+}
+
+/* Journey trail dashed route. */
+.journey-route { background-image: repeating-linear-gradient(to bottom, #d1d5db 0 5px, transparent 5px 12px); }
+
+/* Gradient brand text. */
+.text-gradient-brand {
+  background: linear-gradient(135deg, #2563eb 0%, #60a5fa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Noise texture overlay (used by PageCanvas). */
+.noise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  border-radius: inherit;
+}
