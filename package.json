@@ -2,13 +2,11 @@
   "name": "visa-drill",
   "version": "0.1.0",
   "private": true,
-  "description": "Practice U.S. immigration interviews with a realistic AI consular officer, powered by Tavus CVI.",
+  "description": "Practice U.S. immigration interviews with a realistic AI consular officer.",
   "scripts": {
-    "dev": "concurrently -n backend,client -c blue,magenta \"npm run dev:backend\" \"npm --prefix client run dev\"",
-    "dev:backend": "cd backend && uvicorn app.main:app --reload --port 8787",
-    "install:all": "npm install && npm --prefix client install && pip install -r backend/requirements.txt"
-  },
-  "devDependencies": {
-    "concurrently": "^9.0.1"
+    "dev": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "preview": "npm --prefix client run preview",
+    "install:all": "npm --prefix client install"
   }
 }

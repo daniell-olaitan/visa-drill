@@ -2,6 +2,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { functionHeaders, functionUrl } from "@/lib/supabaseApi";
 import { buttonVariants } from "./button-variants";
 
 interface WaitlistFormProps {
@@ -20,9 +21,9 @@ export function WaitlistForm({ dark = false }: WaitlistFormProps) {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/waitlist", {
+      const res = await fetch(functionUrl("waitlist"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: functionHeaders(),
         body: JSON.stringify({ email: trimmed }),
       });
       const json = (await res.json()) as { data: unknown; error: { message: string } | null };

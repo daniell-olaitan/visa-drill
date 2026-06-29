@@ -1,4 +1,5 @@
 import type { VisaCategory } from "@/lib/questionBank";
+import { functionHeaders, functionUrl } from "@/lib/supabaseApi";
 
 export interface LiveAvatarEmbed {
   url: string;
@@ -8,20 +9,15 @@ export interface LiveAvatarEmbed {
   maxSeconds?: number;
 }
 
-// Served by the FastAPI backend, which creates a provider conversation and returns
-// its conversation_url as { url }. Same-origin in production (FastAPI serves the
-// SPA); in dev the Vite server proxies /api to the backend.
-const EMBED_ENDPOINT =
-  (import.meta.env.VITE_LIVEAVATAR_EMBED_URL as string | undefined) ||
-  "/api/liveavatar/embed";
-
+// Calls the Supabase Edge Function `start-session`, which creates a provider
+// conversation and returns its room URL as { url }.
 export const createLiveAvatarEmbed = async (
   category: VisaCategory,
   applicantContext?: string | null,
 ): Promise<LiveAvatarEmbed> => {
-  const res = await fetch(EMBED_ENDPOINT, {
+  const res = await fetch(functionUrl("start-session"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: functionHeaders(),
     body: JSON.stringify({ category, applicant_context: applicantContext ?? undefined }),
   });
 
@@ -43,7 +39,7 @@ export const createLiveAvatarEmbed = async (
     throw new Error(payload?.error ?? `Embed request failed (${res.status})`);
   }
   if (!payload?.url) {
-    throw new Error("LiveAvatar embed URL was not returned");
+    throw new Error("Live interview URL was not returned");
   }
 
   return {

@@ -1,0 +1,12 @@
+project_id = "tbuaxywxkiyodvoihrhn"
+
+# These functions are called directly from the browser, so they do their own
+# checks and do not require a Supabase JWT.
+[functions.start-session]
+verify_jwt = false
+
+[functions.report]
+verify_jwt = false
+
+[functions.waitlist]
+verify_jwt = false

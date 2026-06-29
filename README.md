@@ -2,13 +2,13 @@
 
 Practice high-stakes U.S. visa interviews with a hyperreal AI consular officer, then get an honest, scored debrief - so the real interview feels like your second time.
 
-![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+> **Backend:** Supabase Edge Functions (`supabase/functions/`) + Supabase Postgres, with the Vite SPA on Lovable. See **[DEPLOY_LOVABLE.md](DEPLOY_LOVABLE.md)**. The original FastAPI backend is archived outside the repo. (Some sections below still describe that backend - a fuller rewrite is pending.)
+
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white)
 ![Status](https://img.shields.io/badge/status-beta-blue)
 
 Interview tracks:
