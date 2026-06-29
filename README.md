@@ -67,7 +67,7 @@ Scoring is local and free (no extra LLM call), and the browser simulator keeps i
 
 - **Data** - Supabase Postgres (the `waitlist` table).
 
-The live call is **browser to provider over WebRTC** (the API key never reaches the browser); the functions are only hit to start a session and to fetch the debrief. The officer personas are pre-provisioned, and their ids live in the function secrets (see [DEPLOY_LOVABLE.md](DEPLOY_LOVABLE.md)).
+The live call is **browser to provider over WebRTC** (the API key never reaches the browser); the functions are only hit to start a session and to fetch the debrief. The officer personas are pre-provisioned, and their ids live in the function secrets.
 
 ## Stack
 
@@ -109,7 +109,7 @@ The app calls the **deployed** Supabase functions. To run the functions locally 
 
 ## Deploy
 
-See **[DEPLOY_LOVABLE.md](DEPLOY_LOVABLE.md)**: set the function secrets, deploy the three functions, set the two `VITE_*` vars in Lovable, and attach your domain.
+The backend is the three Supabase Edge Functions; the frontend imports into Lovable (a Vite app at the repo root). In short: run `supabase functions deploy <name>` for each function, set the function secrets (the provider API key, the five `PERSONA_*_ID`, and `AVATAR_REPLICA_ID`), set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Lovable, then publish and attach your domain.
 
 ## Waitlist
 
