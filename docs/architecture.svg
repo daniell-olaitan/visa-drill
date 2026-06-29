@@ -39,9 +39,9 @@
 
   <!-- Backend -->
   <rect x="347" y="170" width="246" height="120" rx="14" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.5"/>
-  <text x="470" y="212" text-anchor="middle" fill="#0d1117" font-size="17" font-weight="700">API backend</text>
-  <text x="470" y="237" text-anchor="middle" fill="#475569" font-size="13">serves the app + REST /api</text>
-  <text x="470" y="259" text-anchor="middle" fill="#94a3b8" font-size="12">one container, no extra services</text>
+  <text x="470" y="212" text-anchor="middle" fill="#0d1117" font-size="17" font-weight="700">Edge Functions</text>
+  <text x="470" y="237" text-anchor="middle" fill="#475569" font-size="13">Supabase · Deno</text>
+  <text x="470" y="259" text-anchor="middle" fill="#94a3b8" font-size="12">start-session · report · waitlist</text>
 
   <!-- Video AI -->
   <rect x="676" y="56" width="216" height="116" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
